@@ -1,11 +1,15 @@
 appId: com.yourcompany.devtools
 productName: DevTools Suite
+electronDownload:
+  mirror: "https://npmmirror.com/mirrors/electron/"
 directories:
   output: dist
   buildResources: resources
 files:
   - electron/dist/**
+  - electron/package.json
   - renderer/dist/**
+  - node_modules/**
 extraMetadata:
   main: electron/dist/main.js
 mac:
@@ -13,9 +17,7 @@ mac:
   target:
     - dmg
     - zip
-  icon: resources/icons/icon.icns
 win:
   target:
     - nsis
-  icon: resources/icons/icon.ico
 asar: true
