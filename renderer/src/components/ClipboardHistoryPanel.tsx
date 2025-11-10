@@ -24,11 +24,11 @@ export function ClipboardHistoryPanel() {
   useIpcEvent('clipboard:new-item', addClipboardItem);
 
   return (
-    <section className="h-full overflow-y-auto rounded-2xl border border-slate-200 bg-white/70 p-4 shadow-soft backdrop-blur">
+    <section className="flex flex-col h-full overflow-y-auto rounded-2xl border border-slate-200 bg-white/70 p-4 shadow-soft backdrop-blur">
       <header className="mb-4 flex items-center justify-between">
         <div>
           <h2 className="text-xl font-semibold text-slate-900">剪贴板历史</h2>
-          <p className="text-sm text-slate-500">最近复制的内容会自动保存，仅保留最新的 100 条</p>
+          <p className="text-sm text-slate-500">点击保存复制</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -39,18 +39,12 @@ export function ClipboardHistoryPanel() {
           </button>
         </div>
       </header>
-      <ul className="space-y-3">
+      <ul className="space-y-3 flex-1 !overflow-auto">
         {clipboardHistory.map((item) => (
-          <li key={item.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <li key={item.id} className="max-h-40 overflow-auto rounded-xl border border-slate-200 hover:bg-slate-100 p-4 shadow-sm">
             <p className="whitespace-pre-wrap text-sm text-slate-800">{item.content}</p>
             <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
               <time>{new Date(item.createdAt).toLocaleString()}</time>
-              <button
-                className="text-slate-500 underline-offset-2 hover:text-slate-700 hover:underline"
-                onClick={() => navigator.clipboard.writeText(item.content)}
-              >
-                复制
-              </button>
             </div>
           </li>
         ))}
