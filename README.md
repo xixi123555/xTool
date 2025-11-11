@@ -23,7 +23,7 @@ yarn dev
 
 该命令将并行启动：
 
-- `renderer` 工作空间的 Vite 开发服务器（默认端口 5173）
+- `renderer` 工作空间的 Vite 开发服务器（默认端口 5199）
 - `electron` 工作空间的主进程构建与 Electron 应用
 
 Electron 会在 `renderer` 构建完成后自动连接到 Vite 服务，实现热重载体验。
