@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAppStore } from "../store/useAppStore";
 import { ClipboardItem } from "devtools-suite-shared";
 import { useIpcEvent } from "../hooks/useIpcEvent";
+import { ImagePreviewOverlay } from "./ImagePreviewOverlay";
 
 export function ClipboardHistoryPanel() {
   const clipboardHistory = useAppStore((state) => state.clipboardHistory);
@@ -23,13 +24,34 @@ export function ClipboardHistoryPanel() {
     fetchHistory();
   }, [setClipboardHistory]);
 
-  useEffect(() => {
-    console.log('====================================');
-    console.log(clipboardHistory);
-    console.log('====================================');
-  }, [clipboardHistory])
 
   useIpcEvent("clipboard:new-item", addClipboardItem);
+
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewSrc, setPreviewSrc] = useState<string>("");
+
+  const handleItemClick = (item: ClipboardItem) => async (e: React.MouseEvent<HTMLLIElement>) => {
+    e.stopPropagation();
+    if (item.type === 'text') {
+      await window.api.invoke('clipboard:write', { type: 'text', content: item.content });
+      return;
+    }
+    setPreviewSrc(item.content);
+    setPreviewOpen(true);
+  };
+
+  const handlePreviewConfirm = useCallback(async () => {
+    if (!previewSrc) return;
+    await window.api.invoke('clipboard:write', { type: 'image', content: previewSrc });
+    setPreviewOpen(false);
+    setPreviewSrc("");
+  }, [previewSrc]);
+
+  const handlePreviewCancel = useCallback(() => {
+    setPreviewOpen(false);
+    setPreviewSrc("");
+  }, []);
+
 
   return (
     <section className="flex flex-col h-full overflow-y-auto rounded-2xl border border-slate-200 bg-white/70 p-4 shadow-soft backdrop-blur">
@@ -52,49 +74,7 @@ export function ClipboardHistoryPanel() {
           <li
             key={item.id}
             className="group max-h-40 overflow-auto rounded-xl border border-slate-200 hover:bg-slate-100 p-4 shadow-sm cursor-pointer"
-            onClick={async (e) => {
-              // 点击 li：文本立即写入剪贴板；图片触发预览，不立即写入
-              e.stopPropagation();
-              if (item.type === 'text') {
-                await window.api.invoke('clipboard:write', { type: 'text', content: item.content });
-              } else {
-                const overlay = document.createElement('div');
-                overlay.className = 'fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center';
-                const container = document.createElement('div');
-                container.className = 'relative max-w-[80vw] max-h-[80vh]';
-                const img = document.createElement('img');
-                img.src = item.content;
-                img.className = 'rounded-xl shadow-2xl object-contain max-w-full max-h-[80vh]';
-                const hint = document.createElement('div');
-                hint.className = 'absolute -top-10 left-0 right-0 text-center text-sm text-white/80';
-                hint.textContent = '点击空白区域确认复制到剪贴板';
-                container.appendChild(img);
-                container.appendChild(hint);
-                overlay.appendChild(container);
-                document.body.appendChild(overlay);
-
-                function cleanup() {
-                  overlay.removeEventListener('click', onOverlayClick);
-                  document.removeEventListener('keydown', onKeyDown);
-                  overlay.remove();
-                }
-                async function onOverlayClick(ev: MouseEvent) {
-                  // 仅当点击遮罩空白处时执行复制；点击图片本身不触发
-                  if (ev.target === overlay) {
-                    await window.api.invoke('clipboard:write', { type: 'image', content: item.content });
-                    cleanup();
-                  }
-                }
-                function onKeyDown(ev: KeyboardEvent) {
-                  // Esc 取消
-                  if (ev.key === 'Escape') {
-                    cleanup();
-                  }
-                }
-                overlay.addEventListener('click', onOverlayClick);
-                document.addEventListener('keydown', onKeyDown);
-              }
-            }}
+            onClick={handleItemClick(item)}
           >
             {item.type === "text" ? (
               <>
@@ -117,6 +97,12 @@ export function ClipboardHistoryPanel() {
           </li>
         )}
       </ul>
+      <ImagePreviewOverlay
+        open={previewOpen}
+        src={previewSrc}
+        onConfirm={handlePreviewConfirm}
+        onCancel={handlePreviewCancel}
+      />
     </section>
   );
 }
