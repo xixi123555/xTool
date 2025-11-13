@@ -3,6 +3,7 @@ import { useAppStore } from "../../store/useAppStore";
 import { ClipboardItem } from "devtools-suite-shared";
 import { useIpcEvent } from "../../hooks/useIpcEvent";
 import { ImagePreviewOverlay } from "../../components/image-preview/ImagePreviewOverlay";
+import { showToast } from "../../components/toast/Toast";
 
 export function ClipboardHistoryPanel() {
   const clipboardHistory = useAppStore((state) => state.clipboardHistory);
@@ -33,6 +34,7 @@ export function ClipboardHistoryPanel() {
     e.stopPropagation();
     if (item.type === 'text') {
       await window.api.invoke('clipboard:write', { type: 'text', content: item.content });
+      showToast('已复制到剪贴板');
       return;
     }
     setPreviewSrc(item.content);
@@ -42,6 +44,7 @@ export function ClipboardHistoryPanel() {
   const handlePreviewConfirm = useCallback(async () => {
     if (!previewSrc) return;
     await window.api.invoke('clipboard:write', { type: 'image', content: previewSrc });
+    showToast('已复制到剪贴板');
     setPreviewOpen(false);
     setPreviewSrc("");
   }, [previewSrc]);
