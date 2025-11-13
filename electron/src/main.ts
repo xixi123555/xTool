@@ -1,9 +1,10 @@
-import { app, BrowserWindow, ipcMain, nativeTheme, clipboard, nativeImage } from 'electron';
+import { app, BrowserWindow, nativeTheme } from 'electron';
 import path from 'node:path';
 import http from 'node:http';
 import { createClipboardWatcher } from './clipboard/watcher';
 import { clipboardHistoryStore } from './clipboard/store';
 import { logger } from './utils/logger';
+import { registerEvent } from './event'
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -121,19 +122,20 @@ app.on('window-all-closed', () => {
   }
 });
 
-ipcMain.handle('clipboard:get-history', () => clipboardHistoryStore.getAll());
-ipcMain.handle('clipboard:clear', () => clipboardHistoryStore.clear());
+// ipcMain.handle('clipboard:get-history', () => clipboardHistoryStore.getAll());
+// ipcMain.handle('clipboard:clear', () => clipboardHistoryStore.clear());
 
-ipcMain.handle('clipboard:write', (_event, item: { type?: 'text' | 'image'; content: string }) => {
-  try {
-    if (item?.type === 'image') {
-      const image = nativeImage.createFromDataURL(item.content);
-      clipboard.writeImage(image);
-      return { ok: true };
-    }
-    clipboard.writeText(item.content ?? '');
-    return { ok: true };
-  } catch (error) {
-    return { ok: false, error: (error as Error).message };
-  }
-});
+// ipcMain.handle('clipboard:write', (_event, item: { type?: 'text' | 'image'; content: string }) => {
+//   try {
+//     if (item?.type === 'image') {
+//       const image = nativeImage.createFromDataURL(item.content);
+//       clipboard.writeImage(image);
+//       return { ok: true };
+//     }
+//     clipboard.writeText(item.content ?? '');
+//     return { ok: true };
+//   } catch (error) {
+//     return { ok: false, error: (error as Error).message };
+//   }
+// });
+registerEvent();

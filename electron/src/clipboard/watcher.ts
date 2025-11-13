@@ -40,7 +40,7 @@ export function createClipboardWatcher(options: ClipboardWatcherOptions) {
         createdAt: Date.now(),
       });
     }
-    if (current && current !== lastText) {
+    if (current && current !== lastText && current.trim() !== '') {
       lastText = current;
       onNewItem({
         id: crypto.randomUUID(),

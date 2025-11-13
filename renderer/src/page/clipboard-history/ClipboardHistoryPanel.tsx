@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
-import { useAppStore } from "../store/useAppStore";
+import { useAppStore } from "../../store/useAppStore";
 import { ClipboardItem } from "devtools-suite-shared";
-import { useIpcEvent } from "../hooks/useIpcEvent";
-import { ImagePreviewOverlay } from "./ImagePreviewOverlay";
+import { useIpcEvent } from "../../hooks/useIpcEvent";
+import { ImagePreviewOverlay } from "../../components/image-preview/ImagePreviewOverlay";
 
 export function ClipboardHistoryPanel() {
   const clipboardHistory = useAppStore((state) => state.clipboardHistory);
@@ -23,7 +23,6 @@ export function ClipboardHistoryPanel() {
 
     fetchHistory();
   }, [setClipboardHistory]);
-
 
   useIpcEvent("clipboard:new-item", addClipboardItem);
 

@@ -1,6 +1,6 @@
-import { ClipboardHistoryPanel } from './components/ClipboardHistoryPanel';
-import { JsonFormatterPanel } from './components/JsonFormatterPanel';
-import { Sidebar } from './components/Sidebar';
+import { ClipboardHistoryPanel } from './page/clipboard-history/ClipboardHistoryPanel';
+import { JsonFormatterPanel } from './page/json-formatter/JsonFormatterPanel';
+import { Sidebar } from './components/sidebar/Sidebar';
 import { useState } from 'react';
 
 const panels = {
