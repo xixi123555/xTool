@@ -14,13 +14,17 @@ class Logger {
     }
   }
 
-  private write(level: 'info' | 'error', message: string) {
+  private write(level: 'info' | 'error' | 'warn', message: string) {
     const timestamp = new Date().toISOString();
     fs.appendFileSync(this.logFilePath, `[${timestamp}] [${level.toUpperCase()}] ${message}\n`);
   }
 
   info(message: string) {
     this.write('info', message);
+  }
+
+  warn(message: string) {
+    this.write('warn', message);
   }
 
   error(message: string, error?: unknown) {

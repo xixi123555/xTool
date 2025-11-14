@@ -5,4 +5,10 @@ export type ClipboardItem = {
   type?: 'text' | 'image';
 };
 
+export type ScreenshotItem = {
+  id: string;
+  dataUrl: string;
+  createdAt: number;
+};
+
 export type ThemeMode = 'light' | 'dark' | 'system';

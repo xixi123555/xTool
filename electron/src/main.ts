@@ -1,10 +1,14 @@
-import { app, BrowserWindow, nativeTheme } from 'electron';
+import { app, BrowserWindow, nativeTheme, globalShortcut, ipcMain } from 'electron';
+import crypto from 'node:crypto';
+import { captureScreenRegion } from './screenshot/capture.js';
+import { screenshotHistoryStore } from './screenshot/history.js';
+
 import path from 'node:path';
 import http from 'node:http';
 import { createClipboardWatcher } from './clipboard/watcher';
 import { clipboardHistoryStore } from './clipboard/store';
 import { logger } from './utils/logger';
-import { registerEvent } from './event'
+import { registerEvent } from './event/index.js';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -106,8 +110,41 @@ async function createMainWindow() {
   });
 }
 
+function registerScreenshotShortcuts() {
+  const shortcut = 'Alt+S';
+  const registered = globalShortcut.register(shortcut, () => {
+    if (!mainWindow) {
+      return;
+    }
+    mainWindow.webContents.send('screenshot:trigger');
+  });
+
+  if (!registered) {
+    logger.warn(`Failed to register global shortcut ${shortcut}`);
+  }
+}
+
+function registerScreenshotIpcHandlers() {
+  ipcMain.handle('screenshot:capture', async (_event, region: { x: number; y: number; width: number; height: number }) => {
+    const dataUrl = await captureScreenRegion(region);
+    const item = {
+      id: crypto.randomUUID(),
+      dataUrl,
+      createdAt: Date.now(),
+    };
+    await screenshotHistoryStore.add(item);
+    // 通知渲染进程有新的截图
+    mainWindow?.webContents.send('screenshot:new-item', item);
+    return item;
+  });
+
+  ipcMain.handle('screenshot:get-history', () => screenshotHistoryStore.getAll());
+}
+
 app.whenReady().then(() => {
   createMainWindow();
+  registerScreenshotShortcuts();
+  registerScreenshotIpcHandlers();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -122,20 +159,8 @@ app.on('window-all-closed', () => {
   }
 });
 
-// ipcMain.handle('clipboard:get-history', () => clipboardHistoryStore.getAll());
-// ipcMain.handle('clipboard:clear', () => clipboardHistoryStore.clear());
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll();
+});
 
-// ipcMain.handle('clipboard:write', (_event, item: { type?: 'text' | 'image'; content: string }) => {
-//   try {
-//     if (item?.type === 'image') {
-//       const image = nativeImage.createFromDataURL(item.content);
-//       clipboard.writeImage(image);
-//       return { ok: true };
-//     }
-//     clipboard.writeText(item.content ?? '');
-//     return { ok: true };
-//   } catch (error) {
-//     return { ok: false, error: (error as Error).message };
-//   }
-// });
 registerEvent();

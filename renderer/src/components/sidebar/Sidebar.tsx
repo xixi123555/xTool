@@ -1,13 +1,14 @@
 import { ReactNode } from 'react';
 
-const NAV_ITEMS: Array<{ id: 'clipboard' | 'json'; label: string; icon: ReactNode }> = [
+const NAV_ITEMS: Array<{ id: 'clipboard' | 'json' | 'screenshotHistory'; label: string; icon: ReactNode }> = [
   { id: 'clipboard', label: '剪贴板历史', icon: '📋' },
   { id: 'json', label: 'JSON 工具', icon: '🧩' },
+  { id: 'screenshotHistory', label: '截图历史', icon: '📷' },
 ];
 
 type SidebarProps = {
-  activePanel: 'clipboard' | 'json';
-  onChange: (panel: 'clipboard' | 'json') => void;
+  activePanel: 'clipboard' | 'json' | 'screenshotHistory';
+  onChange: (panel: 'clipboard' | 'json' | 'screenshotHistory') => void;
 };
 
 export function Sidebar({ activePanel, onChange }: SidebarProps) {
