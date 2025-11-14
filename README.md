@@ -1,6 +1,6 @@
-# DevTools Suite
+# xTool
 
-DevTools Suite 是一个基于 Electron + React 的开发者效率工具集，当前内置剪贴板历史管理与 JSON 格式化等能力，可按需扩展更多 Panel。
+xTool 是一个基于 Electron + React 的开发者效率工具集，当前内置剪贴板历史管理与 JSON 格式化等能力，可按需扩展更多 Panel。
 
 ## 快速开始
 

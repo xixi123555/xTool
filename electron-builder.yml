@@ -1,5 +1,5 @@
 appId: com.yourcompany.devtools
-productName: DevTools Suite
+productName: xTool
 electronDownload:
   mirror: "https://npmmirror.com/mirrors/electron/"
 directories:

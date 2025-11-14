@@ -15,8 +15,8 @@ export function Sidebar({ activePanel, onChange }: SidebarProps) {
   return (
     <aside className="flex w-60 flex-col border-r border-slate-200 bg-white/80 p-6 backdrop-blur">
       <div className="mb-8 space-y-1">
-        <h1 className="text-2xl font-semibold text-slate-900">DevTools Suite</h1>
-        <p className="text-sm text-slate-500">为开发者打造的多功能工具箱</p>
+        <h1 className="text-2xl font-semibold text-slate-900">xTool</h1>
+        <p className="text-sm text-slate-500">多种实用工具</p>
       </div>
       <nav className="space-y-3">
         {NAV_ITEMS.map((item) => {
