@@ -1,7 +1,8 @@
-import { app, BrowserWindow, nativeTheme, globalShortcut, ipcMain } from 'electron';
+import { app, BrowserWindow, nativeTheme, globalShortcut, ipcMain, screen } from 'electron';
 import crypto from 'node:crypto';
-import { captureScreenRegion } from './screenshot/capture.js';
+import { captureScreenRegion, captureFullScreen } from './screenshot/capture.js';
 import { screenshotHistoryStore } from './screenshot/history.js';
+import { todoStore } from './todo/store.js';
 
 import path from 'node:path';
 import http from 'node:http';
@@ -11,6 +12,10 @@ import { logger } from './utils/logger';
 import { registerEvent } from './event/index.js';
 
 let mainWindow: BrowserWindow | null = null;
+let screenshotWindow: BrowserWindow | null = null;
+let editorWindow: BrowserWindow | null = null;
+let pinnedWindows: Map<string, BrowserWindow> = new Map();
+let windowStateBeforeScreenshot: { x: number; y: number; width: number; height: number; isMaximized: boolean } | null = null;
 
 function resolveHtmlPath() {
   if (process.env.VITE_DEV_SERVER_URL) {
@@ -110,18 +115,272 @@ async function createMainWindow() {
   });
 }
 
+async function createScreenshotWindow() {
+  if (screenshotWindow) {
+    screenshotWindow.focus();
+    return;
+  }
+
+  const display = screen.getPrimaryDisplay();
+  const { width, height } = display.size;
+
+  // 隐藏主窗口
+  if (mainWindow) {
+    const bounds = mainWindow.getBounds();
+    windowStateBeforeScreenshot = {
+      x: bounds.x,
+      y: bounds.y,
+      width: bounds.width,
+      height: bounds.height,
+      isMaximized: mainWindow.isMaximized(),
+    };
+    mainWindow.hide();
+  }
+
+  // 创建全屏透明窗口用于截图选择
+  screenshotWindow = new BrowserWindow({
+    width,
+    height,
+    x: 0,
+    y: 0,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    resizable: false,
+    movable: false,
+    backgroundColor: '#00000000',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      sandbox: false,
+    },
+  });
+
+  // 加载截图选择器页面
+  const htmlPath = resolveHtmlPath();
+  if (process.env.VITE_DEV_SERVER_URL) {
+    await screenshotWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}?screenshot=true`);
+  } else {
+    await screenshotWindow.loadFile(htmlPath, { query: { screenshot: 'true' } });
+  }
+
+  // 等待页面加载完成后发送截图触发事件
+  screenshotWindow.webContents.once('did-finish-load', () => {
+    screenshotWindow?.webContents.send('screenshot:trigger');
+  });
+
+  screenshotWindow.on('closed', () => {
+    screenshotWindow = null;
+    // 恢复主窗口
+    if (mainWindow && windowStateBeforeScreenshot) {
+      if (windowStateBeforeScreenshot.isMaximized) {
+        mainWindow.maximize();
+      } else {
+        mainWindow.setBounds({
+          x: windowStateBeforeScreenshot.x,
+          y: windowStateBeforeScreenshot.y,
+          width: windowStateBeforeScreenshot.width,
+          height: windowStateBeforeScreenshot.height,
+        });
+      }
+      mainWindow.show();
+      windowStateBeforeScreenshot = null;
+    }
+  });
+}
+
 function registerScreenshotShortcuts() {
   const shortcut = 'Alt+S';
   const registered = globalShortcut.register(shortcut, () => {
-    if (!mainWindow) {
-      return;
-    }
-    mainWindow.webContents.send('screenshot:trigger');
+    createScreenshotWindow();
   });
 
   if (!registered) {
     logger.warn(`Failed to register global shortcut ${shortcut}`);
   }
+}
+
+async function createEditorWindow(imageDataUrl: string) {
+  // 关闭截图窗口
+  if (screenshotWindow) {
+    screenshotWindow.close();
+    screenshotWindow = null;
+  }
+
+  // 恢复主窗口
+  if (mainWindow && windowStateBeforeScreenshot) {
+    if (windowStateBeforeScreenshot.isMaximized) {
+      mainWindow.maximize();
+    } else {
+      mainWindow.setBounds({
+        x: windowStateBeforeScreenshot.x,
+        y: windowStateBeforeScreenshot.y,
+        width: windowStateBeforeScreenshot.width,
+        height: windowStateBeforeScreenshot.height,
+      });
+    }
+    mainWindow.show();
+    windowStateBeforeScreenshot = null;
+  }
+
+  // 创建编辑窗口
+  if (editorWindow) {
+    editorWindow.focus();
+    editorWindow.webContents.send('screenshot:edit-image', imageDataUrl);
+    return;
+  }
+
+  const display = screen.getPrimaryDisplay();
+  const { width, height } = display.workAreaSize;
+
+  editorWindow = new BrowserWindow({
+    width: Math.min(1200, width - 100),
+    height: Math.min(800, height - 100),
+    minWidth: 800,
+    minHeight: 600,
+    backgroundColor: '#1e293b',
+    autoHideMenuBar: true,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      sandbox: false,
+    },
+  });
+
+  const htmlPath = resolveHtmlPath();
+  if (process.env.VITE_DEV_SERVER_URL) {
+    await editorWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}?editor=true`);
+  } else {
+    await editorWindow.loadFile(htmlPath, { query: { editor: 'true' } });
+  }
+
+  editorWindow.webContents.once('did-finish-load', () => {
+    // 延迟一点确保页面完全加载
+    setTimeout(() => {
+      editorWindow?.webContents.send('screenshot:edit-image', imageDataUrl);
+    }, 100);
+  });
+
+  // 如果页面已经加载完成，直接发送
+  if (editorWindow.webContents.isLoading() === false) {
+    setTimeout(() => {
+      editorWindow?.webContents.send('screenshot:edit-image', imageDataUrl);
+    }, 100);
+  }
+
+  editorWindow.on('closed', () => {
+    editorWindow = null;
+  });
+}
+
+function createPinnedWindow(imageDataUrl: string, id: string) {
+  // 如果已存在，先关闭
+  const existing = pinnedWindows.get(id);
+  if (existing) {
+    existing.close();
+  }
+
+  const pinnedWindow = new BrowserWindow({
+    width: 300,
+    height: 400,
+    minWidth: 200,
+    minHeight: 200,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    resizable: true,
+    backgroundColor: '#00000000',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      sandbox: false,
+    },
+  });
+
+  pinnedWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+          margin: 0;
+          padding: 0;
+          width: 100vw;
+          height: 100vh;
+          overflow: hidden;
+          background: transparent;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: move;
+          -webkit-app-region: drag;
+        }
+        .image-container {
+          position: relative;
+          display: inline-block;
+          max-width: 100%;
+          max-height: 100%;
+          border: 2px solid rgba(0, 0, 0, 0.2);
+          border-radius: 4px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+        img {
+          max-width: 100%;
+          max-height: 100%;
+          width: auto;
+          height: auto;
+          display: block;
+          object-fit: contain;
+          border-radius: 2px;
+        }
+        .close-btn {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          width: 28px;
+          height: 28px;
+          background: rgba(0, 0, 0, 0.6);
+          backdrop-filter: blur(4px);
+          border: none;
+          color: white;
+          border-radius: 50%;
+          cursor: pointer;
+          font-size: 18px;
+          font-weight: bold;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          line-height: 1;
+          transition: all 0.2s;
+          -webkit-app-region: no-drag;
+          z-index: 10;
+        }
+        .close-btn:hover {
+          background: rgba(0, 0, 0, 0.8);
+          transform: scale(1.1);
+        }
+        .close-btn:active {
+          transform: scale(0.95);
+        }
+      </style>
+    </head>
+    <body>
+      <div class="image-container">
+        <img src="${imageDataUrl}" alt="pinned screenshot" />
+        <button class="close-btn" onclick="window.close()" title="关闭">×</button>
+      </div>
+    </body>
+    </html>
+  `)}`);
+
+  pinnedWindow.on('closed', () => {
+    pinnedWindows.delete(id);
+  });
+
+  pinnedWindows.set(id, pinnedWindow);
 }
 
 function registerScreenshotIpcHandlers() {
@@ -135,16 +394,121 @@ function registerScreenshotIpcHandlers() {
     await screenshotHistoryStore.add(item);
     // 通知渲染进程有新的截图
     mainWindow?.webContents.send('screenshot:new-item', item);
+    
+    // 打开编辑窗口
+    await createEditorWindow(dataUrl);
+    
     return item;
   });
 
   ipcMain.handle('screenshot:get-history', () => screenshotHistoryStore.getAll());
+  
+  // 处理截图取消事件
+  ipcMain.handle('screenshot:cancel', () => {
+    // 关闭截图窗口并恢复主窗口
+    if (screenshotWindow) {
+      screenshotWindow.close();
+      screenshotWindow = null;
+    }
+    if (mainWindow && windowStateBeforeScreenshot) {
+      if (windowStateBeforeScreenshot.isMaximized) {
+        mainWindow.maximize();
+      } else {
+        mainWindow.setBounds({
+          x: windowStateBeforeScreenshot.x,
+          y: windowStateBeforeScreenshot.y,
+          width: windowStateBeforeScreenshot.width,
+          height: windowStateBeforeScreenshot.height,
+        });
+      }
+      mainWindow.show();
+      windowStateBeforeScreenshot = null;
+    }
+  });
+
+  // 处理编辑器关闭
+  ipcMain.handle('screenshot:editor-close', () => {
+    if (editorWindow) {
+      editorWindow.close();
+      editorWindow = null;
+    }
+  });
+
+  // 处理固定截图
+  ipcMain.handle('screenshot:pin', (_event, imageDataUrl: string) => {
+    const id = crypto.randomUUID();
+    createPinnedWindow(imageDataUrl, id);
+    return id;
+  });
+
+  // 处理确认（保存编辑后的截图）
+  ipcMain.handle('screenshot:confirm', async (_event, editedImageDataUrl: string) => {
+    const item = {
+      id: crypto.randomUUID(),
+      dataUrl: editedImageDataUrl,
+      createdAt: Date.now(),
+    };
+    await screenshotHistoryStore.add(item);
+    // 通知渲染进程有新的截图
+    mainWindow?.webContents.send('screenshot:new-item', item);
+    
+    // 关闭编辑窗口
+    if (editorWindow) {
+      editorWindow.close();
+      editorWindow = null;
+    }
+    
+    return item;
+  });
+}
+
+function registerTodoIpcHandlers() {
+  ipcMain.handle('todo:get-all', async () => {
+    return await todoStore.getAll();
+  });
+
+  ipcMain.handle('todo:add-card', async (_event, card: { id: string; name: string; items: any[]; createdAt: number; updatedAt: number }) => {
+    await todoStore.addCard(card);
+    mainWindow?.webContents.send('todo:card-added', card);
+    return card;
+  });
+
+  ipcMain.handle('todo:update-card', async (_event, cardId: string, updates: { name?: string }) => {
+    await todoStore.updateCard(cardId, updates);
+    mainWindow?.webContents.send('todo:card-updated', { cardId });
+    return { ok: true };
+  });
+
+  ipcMain.handle('todo:delete-card', async (_event, cardId: string) => {
+    await todoStore.deleteCard(cardId);
+    mainWindow?.webContents.send('todo:card-deleted', { cardId });
+    return { ok: true };
+  });
+
+  ipcMain.handle('todo:add-item', async (_event, cardId: string, item: { id: string; content: string; completed: boolean; createdAt: number; updatedAt: number }) => {
+    await todoStore.addItemToCard(cardId, item);
+    mainWindow?.webContents.send('todo:item-updated', { cardId });
+    return { ok: true };
+  });
+
+  ipcMain.handle('todo:update-item', async (_event, cardId: string, itemId: string, updates: { content?: string; completed?: boolean }) => {
+    await todoStore.updateItemInCard(cardId, itemId, updates);
+    mainWindow?.webContents.send('todo:item-updated', { cardId });
+    return { ok: true };
+  });
+
+  ipcMain.handle('todo:delete-item', async (_event, cardId: string, itemId: string) => {
+    await todoStore.deleteItemFromCard(cardId, itemId);
+    mainWindow?.webContents.send('todo:item-updated', { cardId });
+    return { ok: true };
+  });
 }
 
 app.whenReady().then(() => {
   createMainWindow();
   registerScreenshotShortcuts();
   registerScreenshotIpcHandlers();
+  registerTodoIpcHandlers();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

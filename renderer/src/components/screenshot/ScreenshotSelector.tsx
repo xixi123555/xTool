@@ -13,12 +13,14 @@ export function ScreenshotSelector({
 }) {
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const [dragging, setDragging] = useState(false);
-  const startRef = useRef<{ x: number; y: number } | null>(null);
+  const startRef = useRef<{ screenX: number; screenY: number; clientX: number; clientY: number } | null>(null);
   const [rect, setRect] = useState<Region | null>(null);
+  const [displayRect, setDisplayRect] = useState<Region | null>(null);
 
   useEffect(() => {
     if (!open) {
       setRect(null);
+      setDisplayRect(null);
       startRef.current = null;
       setDragging(false);
     }
@@ -27,21 +29,31 @@ export function ScreenshotSelector({
   useEffect(() => {
     function onMouseDown(e: MouseEvent) {
       if (!open) return;
-      startRef.current = { x: e.clientX, y: e.clientY };
+      // 保存屏幕坐标（用于截图）和窗口坐标（用于显示）
+      startRef.current = { screenX: e.screenX, screenY: e.screenY, clientX: e.clientX, clientY: e.clientY };
       setDragging(true);
-      setRect({ x: e.clientX, y: e.clientY, width: 0, height: 0 });
+      // 屏幕坐标用于截图
+      setRect({ x: e.screenX, y: e.screenY, width: 0, height: 0 });
+      // 窗口坐标用于显示
+      setDisplayRect({ x: e.clientX, y: e.clientY, width: 0, height: 0 });
     }
     function onMouseMove(e: MouseEvent) {
       if (!open || !dragging || !startRef.current) return;
-      const sx = startRef.current.x;
-      const sy = startRef.current.y;
-      const x = Math.min(sx, e.clientX);
-      const y = Math.min(sy, e.clientY);
-      const width = Math.abs(e.clientX - sx);
-      const height = Math.abs(e.clientY - sy);
-      setRect({ x, y, width, height });
+      // 屏幕坐标用于截图
+      const screenX = Math.min(startRef.current.screenX, e.screenX);
+      const screenY = Math.min(startRef.current.screenY, e.screenY);
+      const screenWidth = Math.abs(e.screenX - startRef.current.screenX);
+      const screenHeight = Math.abs(e.screenY - startRef.current.screenY);
+      setRect({ x: screenX, y: screenY, width: screenWidth, height: screenHeight });
+      
+      // 窗口坐标用于显示
+      const clientX = Math.min(startRef.current.clientX, e.clientX);
+      const clientY = Math.min(startRef.current.clientY, e.clientY);
+      const clientWidth = Math.abs(e.clientX - startRef.current.clientX);
+      const clientHeight = Math.abs(e.clientY - startRef.current.clientY);
+      setDisplayRect({ x: clientX, y: clientY, width: clientWidth, height: clientHeight });
     }
-    function onMouseUp() {
+    function onMouseUp(e: MouseEvent) {
       if (!open) return;
       setDragging(false);
       if (rect && rect.width > 5 && rect.height > 5) {
@@ -64,11 +76,13 @@ export function ScreenshotSelector({
   if (!open) return null;
 
   return (
-    <div ref={overlayRef} className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm">
-      {rect && (
+    <div ref={overlayRef} className="fixed inset-0 z-50 bg-black/10">
+      {/* 绿色边框标记整个可截图区域 */}
+      <div className="absolute inset-0 border-4 border-green-500 pointer-events-none" />
+      {displayRect && (
         <div
-          style={{ left: rect.x, top: rect.y, width: rect.width, height: rect.height }}
-          className="absolute border-2 border-dashed border-white/90 bg-white/10"
+          style={{ left: displayRect.x, top: displayRect.y, width: displayRect.width, height: displayRect.height }}
+          className="absolute border-2 border-dashed border-blue-500 bg-blue-500/10"
         />
       )}
     </div>

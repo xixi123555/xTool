@@ -6,6 +6,15 @@
   body {
     font-family: theme('fontFamily.sans');
   }
+  
+  /* 截图模式下背景透明 */
+  body.screenshot-mode {
+    background: transparent !important;
+  }
+  
+  html.screenshot-mode {
+    background: transparent !important;
+  }
 }
 
 @layer components {
@@ -15,5 +24,21 @@
 
   .btn-secondary {
     @apply rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 active:bg-slate-200;
+  }
+
+  .todo-masonry {
+    column-count: 2 !important;
+    column-gap: 0.75rem !important;
+    column-fill: auto !important;
+    width: 100% !important;
+  }
+
+  .todo-masonry > * {
+    display: inline-block !important;
+    width: 100% !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    -webkit-column-break-inside: avoid !important;
+    margin-bottom: 0.75rem !important;
   }
 }
