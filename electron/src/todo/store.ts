@@ -12,6 +12,8 @@ type TodoCard = {
   id: string;
   name: string;
   items: TodoItem[];
+  starred: boolean;
+  tags: string[];
   createdAt: number;
   updatedAt: number;
 };
@@ -42,6 +44,20 @@ class TodoStore {
       name: 'todo-list',
       defaults: {
         cards: [],
+      },
+      migrations: {
+        '1.0.0': (store: Store<TodoStoreSchema>) => {
+          // 迁移旧数据：为没有 starred 和 tags 字段的卡片添加默认值
+          const cards = store.get('cards');
+          if (Array.isArray(cards)) {
+            const migratedCards = cards.map((card: any) => ({
+              ...card,
+              starred: card.starred ?? false,
+              tags: card.tags ?? [],
+            }));
+            store.set('cards', migratedCards);
+          }
+        },
       },
     });
   }

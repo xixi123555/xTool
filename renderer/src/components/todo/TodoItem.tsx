@@ -71,8 +71,8 @@ export function TodoItemComponent({ item, onUpdate, onDelete, isNew = false }: T
         onClick={handleToggleComplete}
         className={`w-4 h-4 rounded border-2 flex-shrink-0 transition-all ${
           item.completed
-            ? 'bg-blue-600 border-blue-600'
-            : 'border-slate-300 hover:border-blue-500'
+            ? 'bg-green-600 border-green-600'
+            : 'border-slate-300 hover:border-green-500'
         }`}
         title={item.completed ? '标记为未完成' : '标记为完成'}
       >
