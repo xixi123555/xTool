@@ -8,7 +8,7 @@ type TodoItem = {
   updatedAt: number;
 };
 
-type TodoCard = {
+export type TodoCard = {
   id: string;
   name: string;
   items: TodoItem[];

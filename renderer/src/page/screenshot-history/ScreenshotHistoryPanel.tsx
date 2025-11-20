@@ -3,7 +3,7 @@ import { useIpcEvent } from '../../hooks/useIpcEvent';
 import { ImagePreviewOverlay } from '../../components/image-preview/ImagePreviewOverlay';
 import { showToast } from '../../components/toast/Toast';
 
-type ScreenshotItem = { id: string; dataUrl: string; createdAt: number };
+type ScreenshotItem = { id: string; hash: string; dataUrl: string; createdAt: number };
 
 export function ScreenshotHistoryPanel() {
   const [items, setItems] = useState<ScreenshotItem[]>([]);
@@ -19,6 +19,9 @@ export function ScreenshotHistoryPanel() {
 
   useIpcEvent<ScreenshotItem>('screenshot:new-item', (item) => {
     setItems((prev) => [item, ...prev].slice(0, 12));
+    setTimeout(() => {
+      console.log('screenshot:new-item', items.map(({ hash }) => hash));
+    }, 1000)
   });
 
   const handleImageClick = (item: ScreenshotItem) => {

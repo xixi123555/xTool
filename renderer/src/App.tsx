@@ -10,6 +10,8 @@ import { ScreenshotSelector } from './components/screenshot/ScreenshotSelector';
 import { ScreenshotEditor } from './components/screenshot/ScreenshotEditor';
 import { DraggableScreenshot } from './components/screenshot/DraggableScreenshot';
 import { useIpcEvent } from './hooks/useIpcEvent';
+const { showToast } = await import('./components/toast/Toast');
+
 
 const panels = {
   clipboard: <ClipboardHistoryPanel />,
@@ -85,14 +87,13 @@ export function App() {
         onConfirm={async (editedImage) => {
           await window.api.invoke('screenshot:confirm', editedImage);
           (async () => {
-            const { showToast } = await import('./components/toast/Toast');
             showToast('截图已保存');
           })();
         }}
         onPin={async (imageDataUrl) => {
           await window.api.invoke('screenshot:pin', imageDataUrl);
+          await window.api.invoke('screenshot:confirm', imageDataUrl);
           (async () => {
-            const { showToast } = await import('./components/toast/Toast');
             showToast('截图已固定');
           })();
         }}
