@@ -3,6 +3,7 @@ import { JsonFormatterPanel } from './page/json-formatter/JsonFormatterPanel';
 import { Sidebar } from './components/sidebar/Sidebar';
 import { ScreenshotHistoryPanel } from './page/screenshot-history/ScreenshotHistoryPanel';
 import { TodoListPanel } from './page/todo-list/TodoListPanel';
+import { TranslationPanel } from './page/translation/TranslationPanel';
 import { useState } from 'react';
 
 import { useEffect } from 'react';
@@ -18,6 +19,7 @@ const panels = {
   json: <JsonFormatterPanel />,
   screenshotHistory: <ScreenshotHistoryPanel />,
   todoList: <TodoListPanel />,
+  translation: <TranslationPanel />,
 };
 
 export function App() {
