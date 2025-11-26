@@ -1,16 +1,17 @@
 import { ReactNode } from 'react';
 
-const NAV_ITEMS: Array<{ id: 'clipboard' | 'json' | 'screenshotHistory' | 'todoList' | 'translation'; label: string; icon: ReactNode }> = [
+const NAV_ITEMS: Array<{ id: 'clipboard' | 'json' | 'screenshotHistory' | 'todoList' | 'translation' | 'webReader'; label: string; icon: ReactNode }> = [
   { id: 'clipboard', label: '剪贴板历史', icon: '📋' },
   { id: 'json', label: 'JSON 工具', icon: '🧩' },
   { id: 'screenshotHistory', label: '截图历史', icon: '📷' },
   { id: 'todoList', label: '待办事项', icon: '✓' },
-  { id: 'translation', label: '翻译', icon: '🌐' },
+  { id: 'translation', label: '翻译', icon: '🤖' },
+  { id: 'webReader', label: '网页阅读器', icon: '📄' },
 ];
 
 type SidebarProps = {
-  activePanel: 'clipboard' | 'json' | 'screenshotHistory' | 'todoList' | 'translation';
-  onChange: (panel: 'clipboard' | 'json' | 'screenshotHistory' | 'todoList' | 'translation') => void;
+  activePanel: 'clipboard' | 'json' | 'screenshotHistory' | 'todoList' | 'translation' | 'webReader';
+  onChange: (panel: 'clipboard' | 'json' | 'screenshotHistory' | 'todoList' | 'translation' | 'webReader') => void;
 };
 
 export function Sidebar({ activePanel, onChange }: SidebarProps) {
