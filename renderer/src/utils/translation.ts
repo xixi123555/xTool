@@ -4,7 +4,6 @@
 import { stream } from './http';
 
 const DIFY_API_URL = 'https://api.dify.ai/v1/workflows/run';
-const DIFY_API_KEY = 'app-lGps25HvytHZDfuxPVxzcKlP';
 
 export interface TranslationResult {
   text: string;

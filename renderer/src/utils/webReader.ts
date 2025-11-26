@@ -5,7 +5,6 @@ import { stream } from './http';
 import { parseSSEStream, SSEEventHandlers } from './translation';
 
 const DIFY_API_URL = 'https://api.dify.ai/v1/workflows/run';
-const DIFY_API_KEY = 'app-UnfieRzeeC87E8b8L0x0CdgL';
 
 /**
  * 读取网页内容（流式响应）
