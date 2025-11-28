@@ -6,9 +6,20 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const dbConfig = {
+interface DatabaseConfig {
+  host: string;
+  port: number;
+  user: string;
+  password: string;
+  database: string;
+  waitForConnections: boolean;
+  connectionLimit: number;
+  queueLimit: number;
+}
+
+const dbConfig: DatabaseConfig = {
   host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 3306,
+  port: parseInt(process.env.DB_PORT || '3306', 10),
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'xtool_db',
@@ -23,7 +34,7 @@ const pool = mysql.createPool(dbConfig);
 /**
  * 初始化数据库表
  */
-export async function initDatabase() {
+export async function initDatabase(): Promise<void> {
   try {
     // 创建用户表
     await pool.execute(`
@@ -61,9 +72,9 @@ export async function initDatabase() {
         ALTER TABLE app_keys 
         ADD COLUMN description TEXT
       `);
-    } catch (error) {
+    } catch (error: any) {
       // 如果字段已存在，忽略错误
-      if (error.message.includes('Duplicate column name') || error.code === 'ER_DUP_FIELDNAME') {
+      if (error.message?.includes('Duplicate column name') || error.code === 'ER_DUP_FIELDNAME') {
         console.log('description 字段已存在，跳过添加');
       } else {
         console.warn('添加 description 字段时出错:', error.message);

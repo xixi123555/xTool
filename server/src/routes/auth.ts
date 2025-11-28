@@ -1,33 +1,55 @@
 /**
  * 认证路由
  */
-import express from 'express';
+import express, { Request, Response } from 'express';
 import { User } from '../models/User.js';
 import { Shortcut } from '../models/Shortcut.js';
-import { generateToken } from '../utils/jwt.js';
+import { generateToken, verifyToken } from '../utils/jwt.js';
 
 const router = express.Router();
+
+interface RegisterRequest extends Request {
+  body: {
+    username: string;
+    password: string;
+    email?: string;
+  };
+}
+
+interface LoginRequest extends Request {
+  body: {
+    username: string;
+    password: string;
+  };
+}
 
 /**
  * 用户注册
  */
-router.post('/register', async (req, res) => {
+router.post('/register', async (req: RegisterRequest, res: Response): Promise<void> => {
   try {
     const { username, password, email } = req.body;
 
     if (!username || !password) {
-      return res.status(400).json({ error: '用户名和密码不能为空' });
+      res.status(400).json({ error: '用户名和密码不能为空' });
+      return;
     }
 
     // 检查用户是否已存在
     const existingUser = await User.findByUsername(username);
     if (existingUser) {
-      return res.status(400).json({ error: '用户名已存在' });
+      res.status(400).json({ error: '用户名已存在' });
+      return;
     }
 
     // 创建用户
-    const userId = await User.create(username, password, email, 'normal');
+    const userId = await User.create(username, password, email || null, 'normal');
     const user = await User.findById(userId);
+
+    if (!user) {
+      res.status(500).json({ error: '用户创建失败' });
+      return;
+    }
 
     // 生成 token
     const token = generateToken(userId);
@@ -55,24 +77,32 @@ router.post('/register', async (req, res) => {
 /**
  * 用户登录
  */
-router.post('/login', async (req, res) => {
+router.post('/login', async (req: LoginRequest, res: Response): Promise<void> => {
   try {
     const { username, password } = req.body;
 
     if (!username || !password) {
-      return res.status(400).json({ error: '用户名和密码不能为空' });
+      res.status(400).json({ error: '用户名和密码不能为空' });
+      return;
     }
 
     // 查找用户
     const user = await User.findByUsername(username);
     if (!user) {
-      return res.status(401).json({ error: '用户名或密码错误' });
+      res.status(401).json({ error: '用户名或密码错误' });
+      return;
     }
 
     // 验证密码
+    if (!user.password) {
+      res.status(401).json({ error: '用户名或密码错误' });
+      return;
+    }
+
     const isValid = await User.verifyPassword(password, user.password);
     if (!isValid) {
-      return res.status(401).json({ error: '用户名或密码错误' });
+      res.status(401).json({ error: '用户名或密码错误' });
+      return;
     }
 
     // 生成 token
@@ -101,7 +131,7 @@ router.post('/login', async (req, res) => {
 /**
  * 路人身份登录
  */
-router.post('/guest', async (req, res) => {
+router.post('/guest', async (_req: Request, res: Response) => {
   try {
     // 创建路人用户
     const guestUser = await User.createGuest();
@@ -127,19 +157,20 @@ router.post('/guest', async (req, res) => {
 /**
  * 获取当前用户信息
  */
-router.get('/me', async (req, res) => {
+router.get('/me', async (req: Request, res: Response): Promise<void> => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) {
-      return res.status(401).json({ error: '未提供认证令牌' });
+      res.status(401).json({ error: '未提供认证令牌' });
+      return;
     }
 
-    const jwtUtils = await import('../utils/jwt.js');
-    const decoded = jwtUtils.verifyToken(token);
+    const decoded = verifyToken(token);
     const user = await User.findById(decoded.userId);
 
     if (!user) {
-      return res.status(404).json({ error: '用户不存在' });
+      res.status(404).json({ error: '用户不存在' });
+      return;
     }
 
     res.json({

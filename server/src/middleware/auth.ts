@@ -1,10 +1,16 @@
 /**
  * 认证中间件
  */
+import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/User.js';
+import { AuthenticatedRequest } from '../types/index.js';
 
-export const authenticate = async (req, res, next) => {
+export const authenticate = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void | Response> => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
     
@@ -12,7 +18,7 @@ export const authenticate = async (req, res, next) => {
       return res.status(401).json({ error: '未提供认证令牌' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key') as { userId: number };
     const user = await User.findById(decoded.userId);
 
     if (!user) {

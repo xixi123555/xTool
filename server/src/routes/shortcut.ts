@@ -1,21 +1,25 @@
 /**
  * 快捷键路由
  */
-import express from 'express';
+import express, { Request, Response } from 'express';
 import { Shortcut } from '../models/Shortcut.js';
 import { authenticate } from '../middleware/auth.js';
+import { AuthenticatedRequest } from '../types/index.js';
 
 const router = express.Router();
 
 // 所有路由都需要认证
-router.use(authenticate);
+router.use((req, res, next) => {
+  authenticate(req as unknown as AuthenticatedRequest, res, next);
+});
 
 /**
  * 获取用户的所有自定义快捷键
  */
-router.get('/all', async (req, res) => {
+router.get('/all', async (req: Request, res: Response) => {
+  const typedReq = req as unknown as AuthenticatedRequest;
   try {
-    const userId = req.user.id;
+    const userId = typedReq.user.id;
     const shortcuts = await Shortcut.getUserShortcuts(userId);
 
     res.json({
@@ -28,16 +32,25 @@ router.get('/all', async (req, res) => {
   }
 });
 
+interface SaveShortcutRequest extends AuthenticatedRequest {
+  body: {
+    actionName: string;
+    shortcut: string;
+  };
+}
+
 /**
  * 保存或更新快捷键
  */
-router.post('/save', async (req, res) => {
+router.post('/save', async (req: Request, res: Response) => {
+  const typedReq = req as unknown as SaveShortcutRequest;
   try {
-    const { actionName, shortcut } = req.body;
-    const userId = req.user.id;
+    const { actionName, shortcut } = typedReq.body;
+    const userId = typedReq.user.id;
 
     if (!actionName || !shortcut) {
-      return res.status(400).json({ error: 'actionName 和 shortcut 不能为空' });
+      res.status(400).json({ error: 'actionName 和 shortcut 不能为空' });
+      return;
     }
 
     await Shortcut.upsert(userId, actionName, shortcut);
@@ -55,10 +68,11 @@ router.post('/save', async (req, res) => {
 /**
  * 删除快捷键（恢复为默认值）
  */
-router.delete('/delete/:actionName', async (req, res) => {
+router.delete('/delete/:actionName', async (req: Request, res: Response) => {
+  const typedReq = req as unknown as AuthenticatedRequest;
   try {
-    const { actionName } = req.params;
-    const userId = req.user.id;
+    const { actionName } = typedReq.params;
+    const userId = typedReq.user.id;
 
     await Shortcut.delete(userId, actionName);
 

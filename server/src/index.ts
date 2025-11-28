@@ -1,7 +1,7 @@
 /**
  * Express 服务器入口
  */
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { initDatabase } from './config/database.js';
@@ -20,7 +20,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // 健康检查
-app.get('/health', (req, res) => {
+app.get('/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
 
@@ -30,13 +30,13 @@ app.use('/api/appkey', appKeyRoutes);
 app.use('/api/shortcut', shortcutRoutes);
 
 // 错误处理
-app.use((err, req, res, next) => {
+app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   console.error('服务器错误:', err);
   res.status(500).json({ error: '服务器内部错误' });
 });
 
 // 启动服务器
-async function startServer() {
+async function startServer(): Promise<void> {
   try {
     // 初始化数据库
     await initDatabase();

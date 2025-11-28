@@ -1,25 +1,39 @@
 /**
  * AppKey 路由
  */
-import express from 'express';
+import express, { Request, Response } from 'express';
 import { AppKey } from '../models/AppKey.js';
 import { authenticate } from '../middleware/auth.js';
+import { AuthenticatedRequest } from '../types/index.js';
 
 const router = express.Router();
 
 // 所有路由都需要认证
-router.use(authenticate);
+router.use((req, res, next) => {
+  authenticate(req as unknown as AuthenticatedRequest, res, next);
+});
+
+interface SaveAppKeyRequest extends AuthenticatedRequest {
+  body: {
+    keyName?: string;
+    appKey: string;
+    workflowType: string;
+    description?: string;
+  };
+}
 
 /**
  * 保存或更新 appKey
  */
-router.post('/save', async (req, res) => {
+router.post('/save', async (req: Request, res: Response): Promise<void> => {
+  const typedReq = req as unknown as SaveAppKeyRequest;
   try {
-    const { keyName, appKey, workflowType, description } = req.body;
-    const userId = req.user.id;
+    const { keyName, appKey, workflowType, description } = typedReq.body;
+    const userId = typedReq.user.id;
 
     if (!appKey || !workflowType) {
-      return res.status(400).json({ error: 'appKey 和 workflowType 不能为空' });
+      res.status(400).json({ error: 'appKey 和 workflowType 不能为空' });
+      return;
     }
 
     const id = await AppKey.upsert(
@@ -44,19 +58,22 @@ router.post('/save', async (req, res) => {
 /**
  * 根据 key_name 获取 appKey
  */
-router.get('/get/:keyName', async (req, res) => {
+router.get('/get/:keyName', async (req: Request, res: Response) => {
+  const typedReq = req as unknown as AuthenticatedRequest;
   try {
-    const { keyName } = req.params;
-    const userId = req.user.id;
+    const { keyName } = typedReq.params;
+    const userId = typedReq.user.id;
 
     if (!keyName) {
-      return res.status(400).json({ error: 'keyName 不能为空' });
+      res.status(400).json({ error: 'keyName 不能为空' });
+      return;
     }
 
     const appKey = await AppKey.getByUserAndKeyName(userId, keyName);
 
     if (!appKey) {
-      return res.status(404).json({ error: '未找到 AppKey' });
+      res.status(404).json({ error: '未找到 AppKey' });
+      return;
     }
 
     res.json({
@@ -78,9 +95,10 @@ router.get('/get/:keyName', async (req, res) => {
 /**
  * 获取所有 appKeys
  */
-router.get('/all', async (req, res) => {
+router.get('/all', async (req: Request, res: Response) => {
+  const typedReq = req as unknown as AuthenticatedRequest;
   try {
-    const userId = req.user.id;
+    const userId = typedReq.user.id;
     const appKeys = await AppKey.getByUserId(userId);
 
     res.json({
@@ -99,28 +117,47 @@ router.get('/all', async (req, res) => {
   }
 });
 
+interface UpdateAppKeyRequest extends AuthenticatedRequest {
+  body: {
+    keyName?: string;
+    appKey: string;
+    workflowType?: string;
+    description?: string;
+  };
+}
+
 /**
  * 更新 appKey
  */
-router.put('/update/:id', async (req, res) => {
+router.put('/update/:id', async (req: Request, res: Response) => {
+  const typedReq = req as unknown as UpdateAppKeyRequest;
   try {
-    const { id } = req.params;
-    const { keyName, appKey, workflowType, description } = req.body;
-    const userId = req.user.id;
+    const { id } = typedReq.params;
+    const { keyName, appKey, workflowType, description } = typedReq.body;
+    const userId = typedReq.user.id;
 
     if (!appKey) {
-      return res.status(400).json({ error: 'appKey 不能为空' });
+      res.status(400).json({ error: 'appKey 不能为空' });
+      return;
     }
 
     // 检查 appKey 是否属于当前用户
     const existing = await AppKey.getByUserId(userId);
-    const keyExists = existing.find((k) => k.id === parseInt(id));
+    const keyExists = existing.find((k) => k.id === parseInt(id, 10));
     
     if (!keyExists) {
-      return res.status(404).json({ error: '未找到 AppKey' });
+      res.status(404).json({ error: '未找到 AppKey' });
+      return;
     }
 
-    await AppKey.update(parseInt(id), userId, keyName, appKey, workflowType, description || null);
+    await AppKey.update(
+      parseInt(id, 10),
+      userId,
+      keyName || keyExists.key_name,
+      appKey,
+      workflowType || keyExists.workflow_type,
+      description || null
+    );
 
     res.json({
       success: true,
@@ -135,20 +172,22 @@ router.put('/update/:id', async (req, res) => {
 /**
  * 删除 appKey
  */
-router.delete('/delete/:id', async (req, res) => {
+router.delete('/delete/:id', async (req: Request, res: Response) => {
+  const typedReq = req as unknown as AuthenticatedRequest;
   try {
-    const { id } = req.params;
-    const userId = req.user.id;
+    const { id } = typedReq.params;
+    const userId = typedReq.user.id;
 
     // 检查 appKey 是否属于当前用户
     const existing = await AppKey.getByUserId(userId);
-    const keyExists = existing.find((k) => k.id === parseInt(id));
+    const keyExists = existing.find((k) => k.id === parseInt(id, 10));
     
     if (!keyExists) {
-      return res.status(404).json({ error: '未找到 AppKey' });
+      res.status(404).json({ error: '未找到 AppKey' });
+      return;
     }
 
-    await AppKey.deleteById(parseInt(id), userId);
+    await AppKey.deleteById(parseInt(id, 10), userId);
 
     res.json({
       success: true,
