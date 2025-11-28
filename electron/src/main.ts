@@ -190,14 +190,34 @@ async function createScreenshotWindow() {
   });
 }
 
-function registerScreenshotShortcuts() {
-  const shortcut = 'Alt+S';
-  const registered = globalShortcut.register(shortcut, () => {
+let currentScreenshotShortcut: string = 'Alt+S';
+
+function registerScreenshotShortcuts(shortcut?: string) {
+  // 如果提供了新的快捷键，先取消注册旧的
+  if (currentScreenshotShortcut) {
+    globalShortcut.unregister(currentScreenshotShortcut);
+  }
+
+  const newShortcut = shortcut || currentScreenshotShortcut;
+  const registered = globalShortcut.register(newShortcut, () => {
     createScreenshotWindow();
   });
 
-  if (!registered) {
-    logger.warn(`Failed to register global shortcut ${shortcut}`);
+  if (registered) {
+    currentScreenshotShortcut = newShortcut;
+    logger.info(`Screenshot shortcut registered: ${newShortcut}`);
+  } else {
+    logger.warn(`Failed to register global shortcut ${newShortcut}`);
+    // 如果注册失败且是更新操作，尝试恢复旧的快捷键
+    if (shortcut && currentScreenshotShortcut) {
+      const oldShortcut = currentScreenshotShortcut;
+      const oldRegistered = globalShortcut.register(oldShortcut, () => {
+        createScreenshotWindow();
+      });
+      if (oldRegistered) {
+        logger.info(`Restored old shortcut: ${oldShortcut}`);
+      }
+    }
   }
 }
 
@@ -416,6 +436,52 @@ function registerScreenshotIpcHandlers() {
   });
 }
 
+function registerShortcutIpcHandlers() {
+  // 获取截图快捷键
+  ipcMain.handle('shortcut:get-screenshot', () => {
+    return currentScreenshotShortcut;
+  });
+
+  // 更新截图快捷键
+  ipcMain.handle('shortcut:update-screenshot', (_event, shortcut: string) => {
+    try {
+      // 验证快捷键格式
+      if (!shortcut || shortcut.trim() === '') {
+        return { success: false, error: '快捷键不能为空' };
+      }
+
+      // 尝试注册新快捷键
+      const oldShortcut = currentScreenshotShortcut;
+      registerScreenshotShortcuts(shortcut);
+
+      // 如果注册失败，恢复旧的快捷键
+      if (currentScreenshotShortcut !== shortcut) {
+        registerScreenshotShortcuts(oldShortcut);
+        return { success: false, error: '快捷键注册失败，可能已被其他应用占用' };
+      }
+
+      return { success: true, shortcut: currentScreenshotShortcut };
+    } catch (error) {
+      logger.error('更新快捷键失败:', error);
+      return { success: false, error: '更新快捷键失败' };
+    }
+  });
+
+  // 应用用户的快捷键配置
+  ipcMain.handle('shortcut:apply-user-shortcuts', (_event, shortcuts: Record<string, string>) => {
+    try {
+      if (shortcuts && shortcuts.screenshot) {
+        registerScreenshotShortcuts(shortcuts.screenshot);
+        logger.info(`Applied user shortcut for screenshot: ${shortcuts.screenshot}`);
+      }
+      return { success: true };
+    } catch (error) {
+      logger.error('应用用户快捷键失败:', error);
+      return { success: false, error: '应用快捷键失败' };
+    }
+  });
+}
+
 
 
 app.whenReady().then(async () => {
@@ -425,6 +491,7 @@ app.whenReady().then(async () => {
   
   registerScreenshotShortcuts();
   registerScreenshotIpcHandlers();
+  registerShortcutIpcHandlers();
   registerTodoIpcHandlers(mainWindow as BrowserWindow);
 
   app.on('activate', async () => {

@@ -221,10 +221,9 @@ export function AiAuthPanel() {
   };
 
   return (
-    <section className="flex flex-col h-full overflow-hidden rounded-2xl border border-slate-200 bg-white/70 p-6 shadow-soft backdrop-blur">
+    <section className="flex flex-col h-full overflow-hidden p-6">
       <header className="mb-6 flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-slate-900">AI 鉴权管理</h2>
           <p className="text-sm text-slate-500">管理 Dify 工作流的 API Key</p>
         </div>
         <button

@@ -2,22 +2,22 @@ import { ReactNode } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { showToast } from '../toast/Toast';
 
-const ALL_NAV_ITEMS: Array<{ id: 'clipboard' | 'json' | 'screenshotHistory' | 'todoList' | 'translation' | 'webReader' | 'aiAuth'; label: string; icon: ReactNode; requiresAuth?: boolean }> = [
+const ALL_NAV_ITEMS: Array<{ id: 'clipboard' | 'json' | 'screenshotHistory' | 'todoList' | 'translation' | 'webReader'; label: string; icon: ReactNode; requiresAuth?: boolean }> = [
   { id: 'clipboard', label: '剪贴板历史', icon: '📋' },
   { id: 'json', label: 'JSON 工具', icon: '🧩' },
   { id: 'screenshotHistory', label: '截图历史', icon: '📷' },
   { id: 'todoList', label: '待办事项', icon: '✓' },
   { id: 'translation', label: '翻译', icon: '🤖', requiresAuth: true },
   { id: 'webReader', label: '网页阅读器', icon: '📄', requiresAuth: true },
-  { id: 'aiAuth', label: 'AI 鉴权管理', icon: '🔑' },
 ];
 
 type SidebarProps = {
-  activePanel: 'clipboard' | 'json' | 'screenshotHistory' | 'todoList' | 'translation' | 'webReader' | 'aiAuth';
-  onChange: (panel: 'clipboard' | 'json' | 'screenshotHistory' | 'todoList' | 'translation' | 'webReader' | 'aiAuth') => void;
+  activePanel: 'clipboard' | 'json' | 'screenshotHistory' | 'todoList' | 'translation' | 'webReader';
+  onChange: (panel: 'clipboard' | 'json' | 'screenshotHistory' | 'todoList' | 'translation' | 'webReader') => void;
+  onSettingsClick: () => void;
 };
 
-export function Sidebar({ activePanel, onChange }: SidebarProps) {
+export function Sidebar({ activePanel, onChange, onSettingsClick }: SidebarProps) {
   const { user, logout, canUseFeature } = useAppStore();
 
   const handleLogout = () => {
@@ -64,8 +64,36 @@ export function Sidebar({ activePanel, onChange }: SidebarProps) {
         })}
       </nav>
       <div className="mt-auto pt-4 border-t border-slate-200">
-        <div className="mb-3 text-xs text-slate-500">
-          {user?.user_type === 'guest' ? '路人身份' : user?.username}
+        <div className="mb-3 flex items-center justify-between">
+          <span className="text-xs text-slate-500">
+            {user?.user_type === 'guest' ? '路人身份' : user?.username}
+          </span>
+          <button
+            className="text-slate-500 hover:text-slate-700 transition p-1"
+            onClick={onSettingsClick}
+            title="设置"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+            </svg>
+          </button>
         </div>
         <button
           className="btn-secondary w-full text-sm"

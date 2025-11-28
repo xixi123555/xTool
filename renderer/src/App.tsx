@@ -5,8 +5,9 @@ import { ScreenshotHistoryPanel } from './page/screenshot-history/ScreenshotHist
 import { TodoListPanel } from './page/todo-list/TodoListPanel';
 import { TranslationPanel } from './page/translation/TranslationPanel';
 import { WebReaderPanel } from './page/web-reader/WebReaderPanel';
-import { AiAuthPanel } from './page/ai-auth/AiAuthPanel';
 import { LoginPage } from './page/login/LoginPage';
+import { SettingsDrawer } from './components/settings/SettingsDrawer';
+import { SettingsPanel } from './page/settings/SettingsPanel';
 import { useState, useEffect } from 'react';
 import { useAppStore } from './store/useAppStore';
 import { ScreenshotSelector } from './components/screenshot/ScreenshotSelector';
@@ -23,7 +24,6 @@ const panels = {
   todoList: <TodoListPanel />,
   translation: <TranslationPanel />,
   webReader: <WebReaderPanel />,
-  aiAuth: <AiAuthPanel />,
 };
 
 export function App() {
@@ -31,21 +31,31 @@ export function App() {
   const isScreenshotMode = new URLSearchParams(window.location.search).get('screenshot') === 'true';
   const isEditorMode = new URLSearchParams(window.location.search).get('editor') === 'true';
   
-  const { user, token, setUser, setToken } = useAppStore();
+  const { user, token, setUser, setToken, shortcuts, setShortcuts } = useAppStore();
   const [activePanel, setActivePanel] = useState<keyof typeof panels>('clipboard');
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [draggables, setDraggables] = useState<Array<{ id: string; src: string }>>([]);
   const [editingImage, setEditingImage] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
-  // 初始化时从 localStorage 恢复用户信息
+  // 初始化时从 localStorage 恢复用户信息和快捷键配置
   useEffect(() => {
     const savedToken = localStorage.getItem('xtool_token');
     const savedUser = localStorage.getItem('xtool_user');
+    const savedShortcuts = localStorage.getItem('xtool_shortcuts');
     if (savedToken && savedUser) {
       setToken(savedToken);
       setUser(JSON.parse(savedUser));
+      if (savedShortcuts) {
+        const parsedShortcuts = JSON.parse(savedShortcuts);
+        setShortcuts(parsedShortcuts);
+        // 应用快捷键配置
+        if (parsedShortcuts && Object.keys(parsedShortcuts).length > 0) {
+          window.api.invoke('shortcut:apply-user-shortcuts', parsedShortcuts);
+        }
+      }
     }
-  }, [setToken, setUser]);
+  }, [setToken, setUser, setShortcuts]);
 
   // 在截图模式下设置 body 和 html 的背景透明
   useEffect(() => {
@@ -142,10 +152,22 @@ export function App() {
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-white text-slate-800">
-      <Sidebar activePanel={activePanel} onChange={setActivePanel} />
+      <Sidebar 
+        activePanel={activePanel} 
+        onChange={setActivePanel}
+        onSettingsClick={() => setSettingsOpen(true)}
+      />
       <main className="flex flex-1 flex-col gap-4 p-6 overflow-hidden">
         {panels[activePanel]}
       </main>
+
+      {/* 设置抽屉 */}
+      <SettingsDrawer
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+      >
+        <SettingsPanel onClose={() => setSettingsOpen(false)} />
+      </SettingsDrawer>
 
       <ScreenshotSelector
         open={selectorOpen}

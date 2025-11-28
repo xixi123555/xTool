@@ -70,6 +70,21 @@ export async function initDatabase() {
       }
     }
 
+    // 创建快捷键表
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS shortcuts (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        action_name VARCHAR(50) NOT NULL,
+        shortcut VARCHAR(100) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        UNIQUE KEY uk_user_action (user_id, action_name),
+        INDEX idx_user_id (user_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
     console.log('数据库表初始化成功');
   } catch (error) {
     console.error('数据库初始化失败:', error);

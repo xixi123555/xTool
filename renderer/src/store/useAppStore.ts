@@ -8,6 +8,11 @@ type User = {
   user_type: 'normal' | 'guest';
 };
 
+type Shortcuts = {
+  screenshot?: string;
+  [key: string]: string | undefined;
+};
+
 type AppState = {
   clipboardHistory: ClipboardItem[];
   addClipboardItem: (item: ClipboardItem) => void;
@@ -20,6 +25,9 @@ type AppState = {
   logout: () => void;
   // 检查用户是否有权限使用功能
   canUseFeature: (feature: 'translation' | 'web_reader') => boolean;
+  // 快捷键配置
+  shortcuts: Shortcuts;
+  setShortcuts: (shortcuts: Shortcuts) => void;
 };
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -35,9 +43,16 @@ export const useAppStore = create<AppState>((set, get) => ({
   setUser: (user) => set({ user }),
   setToken: (token) => set({ token }),
   logout: () => {
-    set({ user: null, token: null });
+    set({ user: null, token: null, shortcuts: {} });
     localStorage.removeItem('xtool_token');
     localStorage.removeItem('xtool_user');
+    localStorage.removeItem('xtool_shortcuts');
+  },
+  // 快捷键配置
+  shortcuts: {},
+  setShortcuts: (shortcuts) => {
+    set({ shortcuts });
+    localStorage.setItem('xtool_shortcuts', JSON.stringify(shortcuts));
   },
   // 检查权限：路人用户不能使用翻译和网页阅读器
   canUseFeature: (feature) => {

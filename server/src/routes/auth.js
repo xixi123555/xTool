@@ -3,6 +3,7 @@
  */
 import express from 'express';
 import { User } from '../models/User.js';
+import { Shortcut } from '../models/Shortcut.js';
 import { generateToken } from '../utils/jwt.js';
 
 const router = express.Router();
@@ -31,6 +32,9 @@ router.post('/register', async (req, res) => {
     // 生成 token
     const token = generateToken(userId);
 
+    // 获取用户的快捷键配置（只返回与默认值不同的）
+    const shortcuts = await Shortcut.getUserShortcuts(userId);
+
     res.json({
       success: true,
       token,
@@ -40,6 +44,7 @@ router.post('/register', async (req, res) => {
         email: user.email,
         user_type: user.user_type,
       },
+      shortcuts,
     });
   } catch (error) {
     console.error('注册错误:', error);
@@ -73,6 +78,9 @@ router.post('/login', async (req, res) => {
     // 生成 token
     const token = generateToken(user.id);
 
+    // 获取用户的快捷键配置（只返回与默认值不同的）
+    const shortcuts = await Shortcut.getUserShortcuts(user.id);
+
     res.json({
       success: true,
       token,
@@ -82,6 +90,7 @@ router.post('/login', async (req, res) => {
         email: user.email,
         user_type: user.user_type,
       },
+      shortcuts,
     });
   } catch (error) {
     console.error('登录错误:', error);
@@ -98,6 +107,7 @@ router.post('/guest', async (req, res) => {
     const guestUser = await User.createGuest();
     const token = generateToken(guestUser.id);
 
+    // 路人用户没有自定义快捷键，返回空对象
     res.json({
       success: true,
       token,
@@ -106,6 +116,7 @@ router.post('/guest', async (req, res) => {
         username: guestUser.username,
         user_type: guestUser.user_type,
       },
+      shortcuts: {},
     });
   } catch (error) {
     console.error('路人登录错误:', error);

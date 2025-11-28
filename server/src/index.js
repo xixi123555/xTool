@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import { initDatabase } from './config/database.js';
 import authRoutes from './routes/auth.js';
 import appKeyRoutes from './routes/appKey.js';
+import shortcutRoutes from './routes/shortcut.js';
 
 dotenv.config();
 
@@ -26,6 +27,7 @@ app.get('/health', (req, res) => {
 // 路由
 app.use('/api/auth', authRoutes);
 app.use('/api/appkey', appKeyRoutes);
+app.use('/api/shortcut', shortcutRoutes);
 
 // 错误处理
 app.use((err, req, res, next) => {

@@ -12,7 +12,7 @@ export function LoginPage() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { setUser, setToken } = useAppStore();
+  const { setUser, setToken, setShortcuts } = useAppStore();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,9 +31,16 @@ export function LoginPage() {
       if (response.success) {
         setToken(response.token);
         setUser(response.user);
+        setShortcuts(response.shortcuts || {});
         localStorage.setItem('xtool_token', response.token);
         localStorage.setItem('xtool_user', JSON.stringify(response.user));
+        localStorage.setItem('xtool_shortcuts', JSON.stringify(response.shortcuts || {}));
         showToast('登录成功');
+        
+        // 应用快捷键配置
+        if (response.shortcuts && response.shortcuts.screenshot) {
+          await window.api.invoke('shortcut:apply-user-shortcuts', response.shortcuts);
+        }
       }
     } catch (error: any) {
       console.error('登录错误:', error);
@@ -61,9 +68,16 @@ export function LoginPage() {
       if (response.success) {
         setToken(response.token);
         setUser(response.user);
+        setShortcuts(response.shortcuts || {});
         localStorage.setItem('xtool_token', response.token);
         localStorage.setItem('xtool_user', JSON.stringify(response.user));
+        localStorage.setItem('xtool_shortcuts', JSON.stringify(response.shortcuts || {}));
         showToast('注册成功');
+        
+        // 应用快捷键配置
+        if (response.shortcuts && response.shortcuts.screenshot) {
+          await window.api.invoke('shortcut:apply-user-shortcuts', response.shortcuts);
+        }
       }
     } catch (error: any) {
       console.error('注册错误:', error);
@@ -81,9 +95,16 @@ export function LoginPage() {
       if (response.success) {
         setToken(response.token);
         setUser(response.user);
+        setShortcuts(response.shortcuts || {});
         localStorage.setItem('xtool_token', response.token);
         localStorage.setItem('xtool_user', JSON.stringify(response.user));
+        localStorage.setItem('xtool_shortcuts', JSON.stringify(response.shortcuts || {}));
         showToast('路人身份登录成功');
+        
+        // 应用快捷键配置（路人用户通常没有自定义快捷键）
+        if (response.shortcuts && response.shortcuts.screenshot) {
+          await window.api.invoke('shortcut:apply-user-shortcuts', response.shortcuts);
+        }
       }
     } catch (error: any) {
       console.error('路人登录错误:', error);
