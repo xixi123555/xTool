@@ -1,0 +1,81 @@
+/**
+ * 数据库配置和连接
+ */
+import mysql from 'mysql2/promise';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const dbConfig = {
+  host: process.env.DB_HOST || 'localhost',
+  port: process.env.DB_PORT || 3306,
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'xtool_db',
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+};
+
+// 创建连接池
+const pool = mysql.createPool(dbConfig);
+
+/**
+ * 初始化数据库表
+ */
+export async function initDatabase() {
+  try {
+    // 创建用户表
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(50) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        email VARCHAR(100),
+        user_type ENUM('normal', 'guest') DEFAULT 'normal',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    // 创建 appKey 表
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS app_keys (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        key_name VARCHAR(100) NOT NULL,
+        app_key VARCHAR(255) NOT NULL,
+        workflow_type VARCHAR(50) NOT NULL,
+        description TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        INDEX idx_user_id (user_id),
+        INDEX idx_workflow_type (workflow_type)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    // 如果表已存在，添加 description 字段（如果不存在）
+    try {
+      await pool.execute(`
+        ALTER TABLE app_keys 
+        ADD COLUMN description TEXT
+      `);
+    } catch (error) {
+      // 如果字段已存在，忽略错误
+      if (error.message.includes('Duplicate column name') || error.code === 'ER_DUP_FIELDNAME') {
+        console.log('description 字段已存在，跳过添加');
+      } else {
+        console.warn('添加 description 字段时出错:', error.message);
+      }
+    }
+
+    console.log('数据库表初始化成功');
+  } catch (error) {
+    console.error('数据库初始化失败:', error);
+    throw error;
+  }
+}
+
+export default pool;
+

@@ -5,9 +5,10 @@ import { ScreenshotHistoryPanel } from './page/screenshot-history/ScreenshotHist
 import { TodoListPanel } from './page/todo-list/TodoListPanel';
 import { TranslationPanel } from './page/translation/TranslationPanel';
 import { WebReaderPanel } from './page/web-reader/WebReaderPanel';
-import { useState } from 'react';
-
-import { useEffect } from 'react';
+import { AiAuthPanel } from './page/ai-auth/AiAuthPanel';
+import { LoginPage } from './page/login/LoginPage';
+import { useState, useEffect } from 'react';
+import { useAppStore } from './store/useAppStore';
 import { ScreenshotSelector } from './components/screenshot/ScreenshotSelector';
 import { ScreenshotEditor } from './components/screenshot/ScreenshotEditor';
 import { DraggableScreenshot } from './components/screenshot/DraggableScreenshot';
@@ -22,6 +23,7 @@ const panels = {
   todoList: <TodoListPanel />,
   translation: <TranslationPanel />,
   webReader: <WebReaderPanel />,
+  aiAuth: <AiAuthPanel />,
 };
 
 export function App() {
@@ -29,10 +31,21 @@ export function App() {
   const isScreenshotMode = new URLSearchParams(window.location.search).get('screenshot') === 'true';
   const isEditorMode = new URLSearchParams(window.location.search).get('editor') === 'true';
   
+  const { user, token, setUser, setToken } = useAppStore();
   const [activePanel, setActivePanel] = useState<keyof typeof panels>('clipboard');
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [draggables, setDraggables] = useState<Array<{ id: string; src: string }>>([]);
   const [editingImage, setEditingImage] = useState<string | null>(null);
+
+  // 初始化时从 localStorage 恢复用户信息
+  useEffect(() => {
+    const savedToken = localStorage.getItem('xtool_token');
+    const savedUser = localStorage.getItem('xtool_user');
+    if (savedToken && savedUser) {
+      setToken(savedToken);
+      setUser(JSON.parse(savedUser));
+    }
+  }, [setToken, setUser]);
 
   // 在截图模式下设置 body 和 html 的背景透明
   useEffect(() => {
@@ -80,7 +93,24 @@ export function App() {
     }
   }
 
-  // 编辑器模式
+
+  // 截图模式下只显示选择器，背景透明（不需要登录）
+  if (isScreenshotMode) {
+    return (
+      <div className="h-screen w-screen bg-transparent">
+        <ScreenshotSelector
+          open={true}
+          onCancel={async () => {
+            // 通知主进程恢复窗口状态
+            await window.api.invoke('screenshot:cancel');
+          }}
+          onConfirm={handleRegionConfirm}
+        />
+      </div>
+    );
+  }
+
+  // 编辑器模式（不需要登录）
   if (isEditorMode && editingImage) {
     return (
       <ScreenshotEditor
@@ -105,20 +135,9 @@ export function App() {
     );
   }
 
-  // 截图模式下只显示选择器，背景透明
-  if (isScreenshotMode) {
-    return (
-      <div className="h-screen w-screen bg-transparent">
-        <ScreenshotSelector
-          open={true}
-          onCancel={async () => {
-            // 通知主进程恢复窗口状态
-            await window.api.invoke('screenshot:cancel');
-          }}
-          onConfirm={handleRegionConfirm}
-        />
-      </div>
-    );
+  // 如果未登录，显示登录页面
+  if (!user || !token) {
+    return <LoginPage />;
   }
 
   return (

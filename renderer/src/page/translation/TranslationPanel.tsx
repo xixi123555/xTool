@@ -1,8 +1,10 @@
 import { useState, useRef } from 'react';
 import { translateText, detectLanguage } from '../../utils/translation';
 import { showToast } from '../../components/toast/Toast';
+import { useAppStore } from '../../store/useAppStore';
 
 export function TranslationPanel() {
+  const { canUseFeature } = useAppStore();
   const [inputText, setInputText] = useState('');
   const [outputText, setOutputText] = useState('');
   const [isTranslating, setIsTranslating] = useState(false);
@@ -11,6 +13,11 @@ export function TranslationPanel() {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const handleTranslate = async () => {
+    if (!canUseFeature('translation')) {
+      showToast('路人身份无法使用翻译功能，请注册或登录');
+      return;
+    }
+
     if (!inputText.trim()) {
       showToast('请输入要翻译的文本');
       return;
@@ -79,6 +86,16 @@ export function TranslationPanel() {
     setTargetLang(tempLang);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Enter 键触发翻译，Shift+Enter 换行
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (!isTranslating && inputText.trim()) {
+        handleTranslate();
+      }
+    }
+  };
+
   return (
     <section className="flex flex-col h-full overflow-hidden rounded-2xl border border-slate-200 bg-white/70 p-6 shadow-soft backdrop-blur">
       <header className="mb-6 flex items-center justify-between">
@@ -121,9 +138,10 @@ export function TranslationPanel() {
           </div>
           <textarea
             className="flex-1 w-full resize-none rounded-xl border border-slate-300 bg-white p-4 text-sm text-slate-800 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
-            placeholder={sourceLang === 'zh' ? '请输入中文...' : 'Enter English text...'}
+            placeholder={sourceLang === 'zh' ? '请输入中文... (Enter 翻译, Shift+Enter 换行)' : 'Enter English text... (Enter to translate, Shift+Enter for new line)'}
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
+            onKeyDown={handleKeyDown}
             disabled={isTranslating}
           />
         </div>

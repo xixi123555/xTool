@@ -1,13 +1,20 @@
 import { useState } from 'react';
 import { readWebPage, isValidUrl } from '../../utils/webReader';
 import { showToast } from '../../components/toast/Toast';
+import { useAppStore } from '../../store/useAppStore';
 
 export function WebReaderPanel() {
+  const { canUseFeature } = useAppStore();
   const [url, setUrl] = useState('');
   const [content, setContent] = useState('');
   const [isReading, setIsReading] = useState(false);
 
   const handleRead = async () => {
+    if (!canUseFeature('web_reader')) {
+      showToast('路人身份无法使用网页阅读器功能，请注册或登录');
+      return;
+    }
+
     if (!url.trim()) {
       showToast('请输入网页地址');
       return;

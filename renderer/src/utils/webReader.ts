@@ -3,8 +3,24 @@
  */
 import { stream } from './http';
 import { parseSSEStream, SSEEventHandlers } from './translation';
+import { get } from './http';
 
 const DIFY_API_URL = 'https://api.dify.ai/v1/workflows/run';
+const SERVER_API_URL = 'http://localhost:5198/api';
+
+/**
+ * 获取 appKey（从服务器）
+ */
+async function getAppKey(): Promise<string> {
+  try {
+    // 根据 key_name 查询，默认使用 'web_reader' 作为 key_name
+    const response = await get(`${SERVER_API_URL}/appkey/get/web_reader`);
+    return response.appKey.app_key;
+  } catch (error) {
+    console.error('获取 appKey 失败:', error);
+    throw new Error('无法获取 AppKey，请先配置');
+  }
+}
 
 /**
  * 读取网页内容（流式响应）
@@ -16,6 +32,9 @@ export async function readWebPage(
   onError: (error: Error) => void
 ): Promise<void> {
   try {
+    // 获取 appKey
+    const appKey = await getAppKey();
+
     // 使用 HTTP 模块的 stream 方法发送请求
     const response = await stream(
       DIFY_API_URL,
@@ -26,7 +45,7 @@ export async function readWebPage(
       },
       {
         headers: {
-          'Authorization': `Bearer ${DIFY_API_KEY}`,
+          'Authorization': `Bearer ${appKey}`,
         },
       }
     );
@@ -80,4 +99,3 @@ export function isValidUrl(url: string): boolean {
     return false;
   }
 }
-

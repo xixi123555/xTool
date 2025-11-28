@@ -11,6 +11,15 @@ const httpClient: AxiosInstance = axios.create({
   },
 });
 
+// 从 localStorage 获取 token 并设置到请求头
+httpClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem('xtool_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 // 请求拦截器
 httpClient.interceptors.request.use(
   (config) => {
