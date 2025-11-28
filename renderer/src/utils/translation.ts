@@ -5,7 +5,6 @@ import { stream } from './http';
 import { get } from './http';
 
 const DIFY_API_URL = 'https://api.dify.ai/v1/workflows/run';
-const SERVER_API_URL = 'http://localhost:5198/api';
 
 /**
  * 获取 appKey（从服务器）
@@ -13,7 +12,10 @@ const SERVER_API_URL = 'http://localhost:5198/api';
 async function getAppKey(): Promise<string> {
   try {
     // 根据 key_name 查询，默认使用 'translation' 作为 key_name
-    const response = await get(`${SERVER_API_URL}/appkey/get/translation`);
+    const response = await get<{ success: boolean; appKey?: { app_key: string }; error?: string }>('/appkey/get/translation');
+    if (!response.appKey) {
+      throw new Error('无法获取 AppKey，请先配置');
+    }
     return response.appKey.app_key;
   } catch (error) {
     console.error('获取 appKey 失败:', error);

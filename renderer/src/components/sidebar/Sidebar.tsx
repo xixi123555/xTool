@@ -1,23 +1,13 @@
-import { ReactNode } from 'react';
+import { NavLink } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
 import { showToast } from '../toast/Toast';
-
-const ALL_NAV_ITEMS: Array<{ id: 'clipboard' | 'json' | 'screenshotHistory' | 'todoList' | 'translation' | 'webReader'; label: string; icon: ReactNode; requiresAuth?: boolean }> = [
-  { id: 'clipboard', label: '剪贴板历史', icon: '📋' },
-  { id: 'json', label: 'JSON 工具', icon: '🧩' },
-  { id: 'screenshotHistory', label: '截图历史', icon: '📷' },
-  { id: 'todoList', label: '待办事项', icon: '✓' },
-  { id: 'translation', label: '翻译', icon: '🤖', requiresAuth: true },
-  { id: 'webReader', label: '网页阅读器', icon: '📄', requiresAuth: true },
-];
+import { routes } from '../../router';
 
 type SidebarProps = {
-  activePanel: 'clipboard' | 'json' | 'screenshotHistory' | 'todoList' | 'translation' | 'webReader';
-  onChange: (panel: 'clipboard' | 'json' | 'screenshotHistory' | 'todoList' | 'translation' | 'webReader') => void;
   onSettingsClick: () => void;
 };
 
-export function Sidebar({ activePanel, onChange, onSettingsClick }: SidebarProps) {
+export function Sidebar({ onSettingsClick }: SidebarProps) {
   const { user, logout, canUseFeature } = useAppStore();
 
   const handleLogout = () => {
@@ -26,12 +16,20 @@ export function Sidebar({ activePanel, onChange, onSettingsClick }: SidebarProps
   };
 
   // 根据用户权限过滤导航项
-  const navItems = ALL_NAV_ITEMS.filter((item) => {
-    if (item.requiresAuth) {
-      if (item.id === 'translation') {
+  const navItems = routes.filter((route) => {
+    // 如果是路人用户，检查 isShowForGuest 属性
+    if (user?.user_type === 'guest') {
+      if (route.isShowForGuest === false) {
+        return false;
+      }
+    }
+
+    // 检查是否需要认证
+    if (route.requiresAuth) {
+      if (route.path === '/translation') {
         return canUseFeature('translation');
       }
-      if (item.id === 'webReader') {
+      if (route.path === '/web-reader') {
         return canUseFeature('web_reader');
       }
     }
@@ -45,23 +43,22 @@ export function Sidebar({ activePanel, onChange, onSettingsClick }: SidebarProps
         <p className="text-sm text-slate-500">多种实用工具</p>
       </div>
       <nav className="space-y-3 flex-1">
-        {navItems.map((item) => {
-          const isActive = activePanel === item.id;
-          return (
-            <button
-              key={item.id}
-              className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium transition ${
+        {navItems.map((route) => (
+          <NavLink
+            key={route.path}
+            to={route.path}
+            className={({ isActive }) =>
+              `flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium transition ${
                 isActive
                   ? 'bg-slate-900 text-white shadow-soft'
                   : 'text-slate-700 hover:bg-slate-100'
-              }`}
-              onClick={() => onChange(item.id)}
-            >
-              <span className="text-lg">{item.icon}</span>
-              <span>{item.label}</span>
-            </button>
-          );
-        })}
+              }`
+            }
+          >
+            <span className="text-lg">{route.icon}</span>
+            <span>{route.label}</span>
+          </NavLink>
+        ))}
       </nav>
       <div className="mt-auto pt-4 border-t border-slate-200">
         <div className="mb-3 flex items-center justify-between">

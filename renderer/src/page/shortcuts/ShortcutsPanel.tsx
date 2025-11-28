@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { showToast } from '../../components/toast/Toast';
-import { post } from '../../utils/http';
+import { saveShortcut } from '../../api/shortcut';
+import { useAppStore } from '../../store/useAppStore';
 
 interface ShortcutItem {
   id: string;
@@ -11,6 +12,9 @@ interface ShortcutItem {
 }
 
 export function ShortcutsPanel() {
+  const { user } = useAppStore();
+  const isGuest = user?.user_type === 'guest';
+  
   const [shortcuts, setShortcuts] = useState<ShortcutItem[]>([
     {
       id: 'screenshot',
@@ -18,6 +22,20 @@ export function ShortcutsPanel() {
       description: '快速启动截图功能',
       shortcut: '',
       action: 'screenshot',
+    },
+    {
+      id: 'openSettings',
+      name: '打开设置',
+      description: '打开设置页面',
+      shortcut: '',
+      action: 'openSettings',
+    },
+    {
+      id: 'showClipboard',
+      name: '显示剪贴板历史',
+      description: '显示窗口并跳转到剪贴板历史',
+      shortcut: '',
+      action: 'showClipboard',
     },
   ]);
   const [loading, setLoading] = useState(false);
@@ -29,8 +47,19 @@ export function ShortcutsPanel() {
     setLoading(true);
     try {
       const screenshotShortcut = (await window.api.invoke('shortcut:get-screenshot')) as string;
+      const openSettingsShortcut = (await window.api.invoke('shortcut:get-open-settings')) as string;
+      const showClipboardShortcut = (await window.api.invoke('shortcut:get-show-clipboard')) as string;
       setShortcuts((prev) =>
-        prev.map((s) => (s.id === 'screenshot' ? { ...s, shortcut: screenshotShortcut } : s))
+        prev.map((s) => {
+          if (s.id === 'screenshot') {
+            return { ...s, shortcut: screenshotShortcut };
+          } else if (s.id === 'openSettings') {
+            return { ...s, shortcut: openSettingsShortcut };
+          } else if (s.id === 'showClipboard') {
+            return { ...s, shortcut: showClipboardShortcut };
+          }
+          return s;
+        })
       );
     } catch (error: any) {
       console.error('加载快捷键失败:', error);
@@ -46,6 +75,10 @@ export function ShortcutsPanel() {
 
   // 开始编辑
   const handleStartEdit = (id: string, currentShortcut: string) => {
+    if (isGuest) {
+      showToast('路人身份无法修改快捷键');
+      return;
+    }
     setEditingId(id);
     setEditingShortcut(currentShortcut);
   };
@@ -70,6 +103,7 @@ export function ShortcutsPanel() {
           success: boolean;
           error?: string;
           shortcut?: string;
+          errorContent?: any;
         };
 
         if (result.success) {
@@ -82,7 +116,7 @@ export function ShortcutsPanel() {
           
           // 保存到服务器
           try {
-            await post('http://localhost:5198/api/shortcut/save', {
+            await saveShortcut({
               actionName: 'screenshot',
               shortcut: result.shortcut || editingShortcut,
             });
@@ -91,6 +125,67 @@ export function ShortcutsPanel() {
             // 不显示错误提示，因为本地已经更新成功
           }
         } else {
+          console.error('更新快捷键失败:', result.errorContent);
+          showToast(result.error || '更新失败');
+        }
+      } else if (id === 'openSettings') {
+        const result = (await window.api.invoke('shortcut:update-open-settings', editingShortcut)) as {
+          success: boolean;
+          error?: string;
+          shortcut?: string;
+          errorContent?: any;
+        };
+
+        if (result.success) {
+          setShortcuts((prev) =>
+            prev.map((s) => (s.id === id ? { ...s, shortcut: result.shortcut || editingShortcut } : s))
+          );
+          showToast('快捷键更新成功');
+          setEditingId(null);
+          setEditingShortcut('');
+          
+          // 保存到服务器
+          try {
+            await saveShortcut({
+              actionName: 'openSettings',
+              shortcut: result.shortcut || editingShortcut,
+            });
+          } catch (error) {
+            console.error('保存快捷键到服务器失败:', error);
+            // 不显示错误提示，因为本地已经更新成功
+          }
+        } else {
+          console.error('更新快捷键失败:', result.errorContent);
+          showToast(result.error || '更新失败');
+        }
+      } else if (id === 'showClipboard') {
+        const result = (await window.api.invoke('shortcut:update-show-clipboard', editingShortcut)) as {
+          success: boolean;
+          error?: string;
+          shortcut?: string;
+          errorContent?: any;
+        };
+
+        if (result.success) {
+          setShortcuts((prev) =>
+            prev.map((s) => (s.id === id ? { ...s, shortcut: result.shortcut || editingShortcut } : s))
+          );
+          showToast('快捷键更新成功');
+          setEditingId(null);
+          setEditingShortcut('');
+          
+          // 保存到服务器
+          try {
+            await saveShortcut({
+              actionName: 'showClipboard',
+              shortcut: result.shortcut || editingShortcut,
+            });
+          } catch (error) {
+            console.error('保存快捷键到服务器失败:', error);
+            // 不显示错误提示，因为本地已经更新成功
+          }
+        } else {
+          console.error('更新快捷键失败:', result.errorContent);
           showToast(result.error || '更新失败');
         }
       }
@@ -133,21 +228,27 @@ export function ShortcutsPanel() {
       parts.push('Shift');
     }
 
-    // 处理主键
-    let key = e.key;
-    if (key.length === 1 && /[a-zA-Z0-9]/.test(key)) {
-      key = key.toUpperCase();
+    // 使用 e.code 而不是 e.key，因为 e.code 表示物理按键，不受 Option 键特殊字符影响
+    // e.code 格式：KeyA, KeyB, Digit1, ArrowUp 等
+    let key = e.code;
+    
+    // 将 code 转换为 Electron 支持的格式
+    if (key.startsWith('Key')) {
+      // KeyA -> A, KeyB -> B
+      key = key.replace('Key', '');
+    } else if (key.startsWith('Digit')) {
+      // Digit1 -> 1, Digit2 -> 2
+      key = key.replace('Digit', '');
+    } else if (key.startsWith('Numpad')) {
+      // Numpad0 -> Num0, Numpad1 -> Num1
+      key = 'Num' + key.replace('Numpad', '');
     } else {
-      // 处理特殊键
-      const keyMap: Record<string, string> = {
-        ' ': 'Space',
-        'ArrowUp': 'Up',
-        'ArrowDown': 'Down',
-        'ArrowLeft': 'Left',
-        'ArrowRight': 'Right',
+      // 处理其他特殊键
+      const codeMap: Record<string, string> = {
+        'Space': 'Space',
         'Enter': 'Enter',
-        'Escape': 'Esc',
         'Tab': 'Tab',
+        'Escape': 'Esc',
         'Backspace': 'Backspace',
         'Delete': 'Delete',
         'Insert': 'Insert',
@@ -155,21 +256,63 @@ export function ShortcutsPanel() {
         'End': 'End',
         'PageUp': 'PageUp',
         'PageDown': 'PageDown',
+        'ArrowUp': 'Up',
+        'ArrowDown': 'Down',
+        'ArrowLeft': 'Left',
+        'ArrowRight': 'Right',
+        'F1': 'F1',
+        'F2': 'F2',
+        'F3': 'F3',
+        'F4': 'F4',
+        'F5': 'F5',
+        'F6': 'F6',
+        'F7': 'F7',
+        'F8': 'F8',
+        'F9': 'F9',
+        'F10': 'F10',
+        'F11': 'F11',
+        'F12': 'F12',
+        'F13': 'F13',
+        'F14': 'F14',
+        'F15': 'F15',
+        'F16': 'F16',
+        'F17': 'F17',
+        'F18': 'F18',
+        'F19': 'F19',
+        'F20': 'F20',
+        'F21': 'F21',
+        'F22': 'F22',
+        'F23': 'F23',
+        'F24': 'F24',
       };
 
-      if (key.startsWith('Key')) {
-        key = key.replace('Key', '');
-      } else if (key.startsWith('Digit')) {
-        key = key.replace('Digit', '');
-      } else if (key.startsWith('F') && /^F\d+$/.test(key)) {
-        // F1-F12
-        key = key;
-      } else if (keyMap[key]) {
-        key = keyMap[key];
+      if (codeMap[key]) {
+        key = codeMap[key];
       } else {
-        // 其他未映射的键，尝试清理
-        key = key.replace(/^[a-z]/, (char) => char.toUpperCase());
+        // 不支持的键，不处理
+        console.warn('不支持的键:', key);
+        return;
       }
+    }
+
+    // 验证键是否有效（只允许字母、数字和已知的特殊键）
+    const validKeys = new Set([
+      'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
+      'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+      '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+      'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12',
+      'F13', 'F14', 'F15', 'F16', 'F17', 'F18', 'F19', 'F20', 'F21', 'F22', 'F23', 'F24',
+      'Space', 'Enter', 'Tab', 'Esc', 'Backspace', 'Delete',
+      'Up', 'Down', 'Left', 'Right', 'Home', 'End', 'PageUp', 'PageDown',
+      'Insert', 'Clear', 'Return',
+      'Num0', 'Num1', 'Num2', 'Num3', 'Num4', 'Num5', 'Num6', 'Num7', 'Num8', 'Num9',
+      'NumMultiply', 'NumAdd', 'NumSubtract', 'NumDecimal', 'NumDivide',
+    ]);
+
+    if (!validKeys.has(key)) {
+      console.warn('无效的快捷键字符:', key);
+      showToast(`不支持的键，请使用字母、数字或功能键`);
+      return;
     }
 
     if (key && !parts.includes(key)) {
@@ -214,18 +357,19 @@ export function ShortcutsPanel() {
                         onKeyDown={handleKeyDown}
                         autoFocus
                         readOnly
+                        disabled={isGuest}
                       />
                       <button
                         className="btn-primary text-sm px-4 py-2"
                         onClick={() => handleSaveShortcut(shortcut.id)}
-                        disabled={loading || !editingShortcut.trim()}
+                        disabled={loading || !editingShortcut.trim() || isGuest}
                       >
                         保存
                       </button>
                       <button
                         className="btn-secondary text-sm px-4 py-2"
                         onClick={handleCancelEdit}
-                        disabled={loading}
+                        disabled={loading || isGuest}
                       >
                         取消
                       </button>
@@ -233,8 +377,13 @@ export function ShortcutsPanel() {
                   ) : (
                     <div className="flex items-center gap-2">
                       <div
-                        className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 cursor-pointer hover:bg-slate-100 transition"
+                        className={`flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 transition ${
+                          isGuest 
+                            ? 'cursor-not-allowed opacity-60' 
+                            : 'cursor-pointer hover:bg-slate-100'
+                        }`}
                         onClick={() => handleStartEdit(shortcut.id, shortcut.shortcut)}
+                        title={isGuest ? '路人身份无法修改快捷键' : ''}
                       >
                         {shortcut.shortcut || '点击变更'}
                       </div>

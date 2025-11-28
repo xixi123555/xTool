@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { get, post, put, del } from '../../utils/http';
 import { showToast } from '../../components/toast/Toast';
-
-const API_BASE_URL = 'http://localhost:5198/api';
+import { getAllAppKeys, saveAppKey, updateAppKey, deleteAppKey } from '../../api/appKey';
+import { useAppStore } from '../../store/useAppStore';
 
 interface AppKey {
   id: number;
@@ -19,12 +18,14 @@ function EditableField({
   onSave,
   multiline = false,
   className = '',
+  disabled = false,
 }: {
   value: string;
   placeholder: string;
   onSave: (value: string) => void;
   multiline?: boolean;
   className?: string;
+  disabled?: boolean;
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(value);
@@ -56,7 +57,7 @@ function EditableField({
     }
   };
 
-  if (isEditing) {
+  if (isEditing && !disabled) {
     const InputComponent = multiline ? 'textarea' : 'input';
     return (
       <InputComponent
@@ -87,6 +88,9 @@ function EditableField({
 }
 
 export function AiAuthPanel() {
+  const { user } = useAppStore();
+  const isGuest = user?.user_type === 'guest';
+  
   const [appKeys, setAppKeys] = useState<AppKey[]>([]);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -101,8 +105,8 @@ export function AiAuthPanel() {
   const loadAppKeys = async () => {
     setLoading(true);
     try {
-      const response = await get(`${API_BASE_URL}/appkey/all`);
-      if (response.success) {
+      const response = await getAllAppKeys();
+      if (response.success && response.appKeys) {
         setAppKeys(response.appKeys);
       }
     } catch (error: any) {
@@ -145,7 +149,7 @@ export function AiAuthPanel() {
 
     setLoading(true);
     try {
-      await post(`${API_BASE_URL}/appkey/save`, formData);
+        await saveAppKey(formData);
       showToast('添加成功');
       resetForm();
       loadAppKeys();
@@ -181,7 +185,7 @@ export function AiAuthPanel() {
     }
 
     try {
-      await put(`${API_BASE_URL}/appkey/update/${id}`, updateData);
+      await updateAppKey(id, updateData);
       showToast('更新成功');
       loadAppKeys();
     } catch (error: any) {
@@ -199,7 +203,7 @@ export function AiAuthPanel() {
 
     setLoading(true);
     try {
-      await del(`${API_BASE_URL}/appkey/delete/${id}`);
+      await deleteAppKey(id);
       showToast('删除成功');
       loadAppKeys();
     } catch (error: any) {
@@ -229,7 +233,8 @@ export function AiAuthPanel() {
         <button
           className="btn-primary"
           onClick={handleAdd}
-          disabled={loading || showForm}
+          disabled={loading || showForm || isGuest}
+          title={isGuest ? '路人身份无法添加 AppKey' : ''}
         >
           + 添加 AppKey
         </button>
@@ -273,7 +278,7 @@ export function AiAuthPanel() {
                 value={formData.workflowType}
                 onChange={(e) => setFormData({ ...formData, workflowType: e.target.value })}
                 required
-                disabled={loading}
+                disabled={loading || isGuest}
               />
             </div>
             <div>
@@ -287,7 +292,7 @@ export function AiAuthPanel() {
                 onChange={(e) => setFormData({ ...formData, appKey: e.target.value })}
                 rows={3}
                 required
-                disabled={loading}
+                disabled={loading || isGuest}
               />
             </div>
             <div>
@@ -300,14 +305,14 @@ export function AiAuthPanel() {
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={2}
-                disabled={loading}
+                disabled={loading || isGuest}
               />
             </div>
             <div className="flex gap-2">
               <button
                 type="submit"
                 className="btn-primary flex-1"
-                disabled={loading}
+                disabled={loading || isGuest}
               >
                 {loading ? '保存中...' : '保存'}
               </button>
@@ -352,18 +357,21 @@ export function AiAuthPanel() {
                         placeholder="点击变更"
                         onSave={(value) => handleFieldUpdate(key.id, 'keyName', value)}
                         className="font-semibold text-slate-900"
+                        disabled={isGuest}
                       />
                       <EditableField
                         value={key.workflow_type || ''}
                         placeholder="点击变更"
                         onSave={(value) => handleFieldUpdate(key.id, 'workflowType', value)}
                         className="px-2 py-0.5 text-xs rounded bg-slate-100 text-slate-600 min-w-[80px]"
+                        disabled={isGuest}
                       />
                       <EditableField
                         value={key.description || ''}
                         placeholder="点击变更"
                         onSave={(value) => handleFieldUpdate(key.id, 'description', value)}
                         className="px-2 py-0.5 text-xs rounded bg-blue-100 text-blue-600 min-w-[80px]"
+                        disabled={isGuest}
                       />
                     </div>
 
@@ -375,6 +383,7 @@ export function AiAuthPanel() {
                         onSave={(value) => handleFieldUpdate(key.id, 'appKey', value)}
                         multiline
                         className="text-xs text-slate-600 bg-slate-50 px-2 py-1 rounded flex-1 min-w-0"
+                        disabled={isGuest}
                       />
                       <button
                         className="btn-secondary text-xs px-2 py-1 shrink-0"
@@ -388,10 +397,14 @@ export function AiAuthPanel() {
                   
                   {/* 删除按钮 */}
                   <button
-                    className="text-red-500 hover:text-red-700 hover:bg-red-50 rounded p-2 transition shrink-0"
-                    onClick={() => handleDelete(key.id)}
-                    disabled={loading}
-                    title="删除"
+                    className={`rounded p-2 transition shrink-0 ${
+                      isGuest 
+                        ? 'text-slate-400 cursor-not-allowed opacity-60' 
+                        : 'text-red-500 hover:text-red-700 hover:bg-red-50'
+                    }`}
+                    onClick={() => !isGuest && handleDelete(key.id)}
+                    disabled={loading || isGuest}
+                    title={isGuest ? '路人身份无法删除' : '删除'}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"

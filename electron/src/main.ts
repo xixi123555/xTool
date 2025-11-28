@@ -190,36 +190,6 @@ async function createScreenshotWindow() {
   });
 }
 
-let currentScreenshotShortcut: string = 'Alt+S';
-
-function registerScreenshotShortcuts(shortcut?: string) {
-  // 如果提供了新的快捷键，先取消注册旧的
-  if (currentScreenshotShortcut) {
-    globalShortcut.unregister(currentScreenshotShortcut);
-  }
-
-  const newShortcut = shortcut || currentScreenshotShortcut;
-  const registered = globalShortcut.register(newShortcut, () => {
-    createScreenshotWindow();
-  });
-
-  if (registered) {
-    currentScreenshotShortcut = newShortcut;
-    logger.info(`Screenshot shortcut registered: ${newShortcut}`);
-  } else {
-    logger.warn(`Failed to register global shortcut ${newShortcut}`);
-    // 如果注册失败且是更新操作，尝试恢复旧的快捷键
-    if (shortcut && currentScreenshotShortcut) {
-      const oldShortcut = currentScreenshotShortcut;
-      const oldRegistered = globalShortcut.register(oldShortcut, () => {
-        createScreenshotWindow();
-      });
-      if (oldRegistered) {
-        logger.info(`Restored old shortcut: ${oldShortcut}`);
-      }
-    }
-  }
-}
 
 // 创建编辑窗口（在应用启动时调用，隐藏状态）
 async function createEditorWindow() {
@@ -436,51 +406,6 @@ function registerScreenshotIpcHandlers() {
   });
 }
 
-function registerShortcutIpcHandlers() {
-  // 获取截图快捷键
-  ipcMain.handle('shortcut:get-screenshot', () => {
-    return currentScreenshotShortcut;
-  });
-
-  // 更新截图快捷键
-  ipcMain.handle('shortcut:update-screenshot', (_event, shortcut: string) => {
-    try {
-      // 验证快捷键格式
-      if (!shortcut || shortcut.trim() === '') {
-        return { success: false, error: '快捷键不能为空' };
-      }
-
-      // 尝试注册新快捷键
-      const oldShortcut = currentScreenshotShortcut;
-      registerScreenshotShortcuts(shortcut);
-
-      // 如果注册失败，恢复旧的快捷键
-      if (currentScreenshotShortcut !== shortcut) {
-        registerScreenshotShortcuts(oldShortcut);
-        return { success: false, error: '快捷键注册失败，可能已被其他应用占用' };
-      }
-
-      return { success: true, shortcut: currentScreenshotShortcut };
-    } catch (error) {
-      logger.error('更新快捷键失败:', error);
-      return { success: false, error: '更新快捷键失败' };
-    }
-  });
-
-  // 应用用户的快捷键配置
-  ipcMain.handle('shortcut:apply-user-shortcuts', (_event, shortcuts: Record<string, string>) => {
-    try {
-      if (shortcuts && shortcuts.screenshot) {
-        registerScreenshotShortcuts(shortcuts.screenshot);
-        logger.info(`Applied user shortcut for screenshot: ${shortcuts.screenshot}`);
-      }
-      return { success: true };
-    } catch (error) {
-      logger.error('应用用户快捷键失败:', error);
-      return { success: false, error: '应用快捷键失败' };
-    }
-  });
-}
 
 
 
@@ -489,15 +414,20 @@ app.whenReady().then(async () => {
   // 创建编辑窗口（隐藏状态）
   await createEditorWindow();
   
-  registerScreenshotShortcuts();
   registerScreenshotIpcHandlers();
-  registerShortcutIpcHandlers();
   registerTodoIpcHandlers(mainWindow as BrowserWindow);
+  
+  // 注册所有事件处理器（包括快捷键）
+  registerEvent(mainWindow as BrowserWindow, createScreenshotWindow);
 
   app.on('activate', async () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       await createMainWindow();
       await createEditorWindow();
+      // 重新注册事件处理器
+      if (mainWindow) {
+        registerEvent(mainWindow, createScreenshotWindow);
+      }
     }
   });
 });
@@ -511,5 +441,3 @@ app.on('window-all-closed', () => {
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
 });
-
-registerEvent();

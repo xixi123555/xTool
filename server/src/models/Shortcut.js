@@ -6,6 +6,8 @@ import pool from '../config/database.js';
 // 默认快捷键配置
 const DEFAULT_SHORTCUTS = {
   screenshot: 'Alt+S',
+  openSettings: 'Alt+Command+S',
+  showClipboard: 'Alt+Space',
 };
 
 export class Shortcut {

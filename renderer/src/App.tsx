@@ -1,38 +1,21 @@
-import { ClipboardHistoryPanel } from './page/clipboard-history/ClipboardHistoryPanel';
-import { JsonFormatterPanel } from './page/json-formatter/JsonFormatterPanel';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Sidebar } from './components/sidebar/Sidebar';
-import { ScreenshotHistoryPanel } from './page/screenshot-history/ScreenshotHistoryPanel';
-import { TodoListPanel } from './page/todo-list/TodoListPanel';
-import { TranslationPanel } from './page/translation/TranslationPanel';
-import { WebReaderPanel } from './page/web-reader/WebReaderPanel';
 import { LoginPage } from './page/login/LoginPage';
 import { SettingsDrawer } from './components/settings/SettingsDrawer';
 import { SettingsPanel } from './page/settings/SettingsPanel';
-import { useState, useEffect } from 'react';
-import { useAppStore } from './store/useAppStore';
 import { ScreenshotSelector } from './components/screenshot/ScreenshotSelector';
 import { ScreenshotEditor } from './components/screenshot/ScreenshotEditor';
 import { DraggableScreenshot } from './components/screenshot/DraggableScreenshot';
+import { AppRouter } from './router';
+import { useState, useEffect } from 'react';
+import { useAppStore } from './store/useAppStore';
 import { useIpcEvent } from './hooks/useIpcEvent';
 const { showToast } = await import('./components/toast/Toast');
 
-
-const panels = {
-  clipboard: <ClipboardHistoryPanel />,
-  json: <JsonFormatterPanel />,
-  screenshotHistory: <ScreenshotHistoryPanel />,
-  todoList: <TodoListPanel />,
-  translation: <TranslationPanel />,
-  webReader: <WebReaderPanel />,
-};
-
-export function App() {
-  // 检查是否是截图模式（通过 URL 参数）
-  const isScreenshotMode = new URLSearchParams(window.location.search).get('screenshot') === 'true';
-  const isEditorMode = new URLSearchParams(window.location.search).get('editor') === 'true';
-  
+// 主应用内容组件（需要登录）
+function MainApp() {
+  const navigate = useNavigate();
   const { user, token, setUser, setToken, shortcuts, setShortcuts } = useAppStore();
-  const [activePanel, setActivePanel] = useState<keyof typeof panels>('clipboard');
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [draggables, setDraggables] = useState<Array<{ id: string; src: string }>>([]);
   const [editingImage, setEditingImage] = useState<string | null>(null);
@@ -49,27 +32,24 @@ export function App() {
       if (savedShortcuts) {
         const parsedShortcuts = JSON.parse(savedShortcuts);
         setShortcuts(parsedShortcuts);
-        // 应用快捷键配置
-        if (parsedShortcuts && Object.keys(parsedShortcuts).length > 0) {
-          window.api.invoke('shortcut:apply-user-shortcuts', parsedShortcuts);
-        }
+        // 应用快捷键配置（包括默认快捷键）
+        window.api.invoke('shortcut:apply-user-shortcuts', parsedShortcuts || {});
       }
     }
   }, [setToken, setUser, setShortcuts]);
 
-  // 在截图模式下设置 body 和 html 的背景透明
-  useEffect(() => {
-    if (isScreenshotMode) {
-      document.body.classList.add('screenshot-mode');
-      document.documentElement.classList.add('screenshot-mode');
-      return () => {
-        document.body.classList.remove('screenshot-mode');
-        document.documentElement.classList.remove('screenshot-mode');
-      };
-    }
-  }, [isScreenshotMode]);
-
   useIpcEvent('screenshot:trigger', () => setSelectorOpen(true));
+
+  // 监听切换设置的快捷键（打开/关闭）
+  useIpcEvent('shortcut:toggle-settings', () => {
+    setSettingsOpen((prev) => !prev);
+  });
+
+  // 监听显示剪贴板历史的快捷键
+  useIpcEvent('shortcut:show-clipboard', () => {
+    // 导航到剪贴板历史页面
+    navigate('/clipboard');
+  });
 
   useIpcEvent<{ id: string; dataUrl: string }>('screenshot:show-draggable', (item) => {
     if (item?.dataUrl) {
@@ -88,21 +68,74 @@ export function App() {
     }
   });
 
-  useEffect(() => {
-    // placeholder
-  }, []);
-
   async function handleRegionConfirm(region: { x: number; y: number; width: number; height: number }) {
     setSelectorOpen(false);
     const item = (await window.api.invoke('screenshot:capture', region)) as { id: string; dataUrl: string };
     if (item?.dataUrl) {
       setDraggables((s) => [{ id: item.id, src: item.dataUrl }, ...s]);
-      // refresh screenshot history panel by navigating or other means
-      // show toast
       (await import('./components/toast/Toast')).showToast('截图已保存');
     }
   }
 
+  // 如果未登录，重定向到登录页
+  if (!user || !token) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return (
+    <div className="flex h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-white text-slate-800">
+      <Sidebar onSettingsClick={() => setSettingsOpen(true)} />
+      <main className="flex flex-1 flex-col gap-4 p-6 overflow-hidden">
+        <AppRouter />
+      </main>
+
+      {/* 设置抽屉 */}
+      <SettingsDrawer
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+      >
+        <SettingsPanel onClose={() => setSettingsOpen(false)} />
+      </SettingsDrawer>
+
+      <ScreenshotSelector
+        open={selectorOpen}
+        onCancel={async () => {
+          setSelectorOpen(false);
+          await window.api.invoke('screenshot:cancel');
+        }}
+        onConfirm={handleRegionConfirm}
+      />
+
+      {draggables.map((d) => (
+        <DraggableScreenshot key={d.id} src={d.src} onRemove={() => setDraggables((s) => s.filter((x) => x.id !== d.id))} />
+      ))}
+    </div>
+  );
+}
+
+export function App() {
+  // 检查是否是截图模式（通过 URL 参数）
+  const isScreenshotMode = new URLSearchParams(window.location.search).get('screenshot') === 'true';
+  const isEditorMode = new URLSearchParams(window.location.search).get('editor') === 'true';
+  const [editingImage, setEditingImage] = useState<string | null>(null);
+
+  // 在截图模式下设置 body 和 html 的背景透明
+  useEffect(() => {
+    if (isScreenshotMode) {
+      document.body.classList.add('screenshot-mode');
+      document.documentElement.classList.add('screenshot-mode');
+      return () => {
+        document.body.classList.remove('screenshot-mode');
+        document.documentElement.classList.remove('screenshot-mode');
+      };
+    }
+  }, [isScreenshotMode]);
+
+  useIpcEvent<string>('screenshot:edit-image', (imageDataUrl) => {
+    if (imageDataUrl) {
+      setEditingImage(imageDataUrl);
+    }
+  });
 
   // 截图模式下只显示选择器，背景透明（不需要登录）
   if (isScreenshotMode) {
@@ -111,10 +144,14 @@ export function App() {
         <ScreenshotSelector
           open={true}
           onCancel={async () => {
-            // 通知主进程恢复窗口状态
             await window.api.invoke('screenshot:cancel');
           }}
-          onConfirm={handleRegionConfirm}
+          onConfirm={async (region: { x: number; y: number; width: number; height: number }) => {
+            const item = (await window.api.invoke('screenshot:capture', region)) as { id: string; dataUrl: string };
+            if (item?.dataUrl) {
+              (await import('./components/toast/Toast')).showToast('截图已保存');
+            }
+          }}
         />
       </div>
     );
@@ -145,43 +182,12 @@ export function App() {
     );
   }
 
-  // 如果未登录，显示登录页面
-  if (!user || !token) {
-    return <LoginPage />;
-  }
-
   return (
-    <div className="flex h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-white text-slate-800">
-      <Sidebar 
-        activePanel={activePanel} 
-        onChange={setActivePanel}
-        onSettingsClick={() => setSettingsOpen(true)}
-      />
-      <main className="flex flex-1 flex-col gap-4 p-6 overflow-hidden">
-        {panels[activePanel]}
-      </main>
-
-      {/* 设置抽屉 */}
-      <SettingsDrawer
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-      >
-        <SettingsPanel onClose={() => setSettingsOpen(false)} />
-      </SettingsDrawer>
-
-      <ScreenshotSelector
-        open={selectorOpen}
-        onCancel={async () => {
-          setSelectorOpen(false);
-          // 通知主进程恢复窗口状态
-          await window.api.invoke('screenshot:cancel');
-        }}
-        onConfirm={handleRegionConfirm}
-      />
-
-      {draggables.map((d) => (
-        <DraggableScreenshot key={d.id} src={d.src} onRemove={() => setDraggables((s) => s.filter((x) => x.id !== d.id))} />
-      ))}
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/*" element={<MainApp />} />
+      </Routes>
+    </BrowserRouter>
   );
 }

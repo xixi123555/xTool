@@ -1,11 +1,12 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
-import { post } from '../../utils/http';
 import { showToast } from '../../components/toast/Toast';
-
-const API_BASE_URL = 'http://localhost:5198/api';
+import { login, register, guestLogin } from '../../api/auth';
+import { defaultRoute } from '../../router';
 
 export function LoginPage() {
+  const navigate = useNavigate();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -23,7 +24,7 @@ export function LoginPage() {
 
     setLoading(true);
     try {
-      const response = await post(`${API_BASE_URL}/auth/login`, {
+      const response = await login({
         username,
         password,
       });
@@ -37,10 +38,10 @@ export function LoginPage() {
         localStorage.setItem('xtool_shortcuts', JSON.stringify(response.shortcuts || {}));
         showToast('登录成功');
         
-        // 应用快捷键配置
-        if (response.shortcuts && response.shortcuts.screenshot) {
-          await window.api.invoke('shortcut:apply-user-shortcuts', response.shortcuts);
-        }
+        // 应用快捷键配置（包括默认快捷键）
+        await window.api.invoke('shortcut:apply-user-shortcuts', response.shortcuts || {});
+        // 导航到主页面
+        navigate(defaultRoute);
       }
     } catch (error: any) {
       console.error('登录错误:', error);
@@ -59,7 +60,7 @@ export function LoginPage() {
 
     setLoading(true);
     try {
-      const response = await post(`${API_BASE_URL}/auth/register`, {
+      const response = await register({
         username,
         password,
         email: email || undefined,
@@ -74,10 +75,10 @@ export function LoginPage() {
         localStorage.setItem('xtool_shortcuts', JSON.stringify(response.shortcuts || {}));
         showToast('注册成功');
         
-        // 应用快捷键配置
-        if (response.shortcuts && response.shortcuts.screenshot) {
-          await window.api.invoke('shortcut:apply-user-shortcuts', response.shortcuts);
-        }
+        // 应用快捷键配置（包括默认快捷键）
+        await window.api.invoke('shortcut:apply-user-shortcuts', response.shortcuts || {});
+        // 导航到主页面
+        navigate(defaultRoute);
       }
     } catch (error: any) {
       console.error('注册错误:', error);
@@ -90,7 +91,7 @@ export function LoginPage() {
   const handleGuestLogin = async () => {
     setLoading(true);
     try {
-      const response = await post(`${API_BASE_URL}/auth/guest`, {});
+      const response = await guestLogin();
 
       if (response.success) {
         setToken(response.token);
@@ -101,10 +102,10 @@ export function LoginPage() {
         localStorage.setItem('xtool_shortcuts', JSON.stringify(response.shortcuts || {}));
         showToast('路人身份登录成功');
         
-        // 应用快捷键配置（路人用户通常没有自定义快捷键）
-        if (response.shortcuts && response.shortcuts.screenshot) {
-          await window.api.invoke('shortcut:apply-user-shortcuts', response.shortcuts);
-        }
+        // 应用快捷键配置（包括默认快捷键）
+        await window.api.invoke('shortcut:apply-user-shortcuts', response.shortcuts || {});
+        // 导航到主页面
+        navigate(defaultRoute);
       }
     } catch (error: any) {
       console.error('路人登录错误:', error);
