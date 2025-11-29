@@ -1,7 +1,7 @@
 /**
  * 认证 API
  */
-import { post, get } from '../utils/http';
+import { post, get, put } from '../utils/http';
 
 export interface LoginParams {
   username: string;
@@ -53,5 +53,35 @@ export async function guestLogin(): Promise<AuthResponse> {
  */
 export async function getCurrentUser(): Promise<AuthResponse> {
   return get<AuthResponse>('/auth/me');
+}
+
+export async function sendVerificationCode(email: string): Promise<{ success: boolean; message?: string; error?: string }> {
+  return post<{ success: boolean; message?: string; error?: string }>('/auth/send-code', { email });
+}
+
+export async function loginByCode(email: string, code: string): Promise<AuthResponse> {
+  return post<AuthResponse>('/auth/login-by-code', { email, code });
+}
+
+export interface UpdateProfileParams {
+  username?: string;
+  email?: string;
+  avatar?: string;
+}
+
+export interface UpdateProfileResponse {
+  success: boolean;
+  user?: {
+    id: number;
+    username: string;
+    email?: string;
+    avatar?: string;
+    user_type: 'normal' | 'guest';
+  };
+  error?: string;
+}
+
+export async function updateProfile(params: UpdateProfileParams): Promise<UpdateProfileResponse> {
+  return put<UpdateProfileResponse>('/auth/profile', params);
 }
 

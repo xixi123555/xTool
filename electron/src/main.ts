@@ -1,7 +1,4 @@
-import { app, BrowserWindow, nativeTheme, globalShortcut, ipcMain, screen } from 'electron';
-import crypto from 'node:crypto';
-import { captureScreenRegion, captureFullScreen } from './screenshot/capture.js';
-import { screenshotHistoryStore } from './screenshot/history.js';
+import { app, BrowserWindow, nativeTheme, globalShortcut, screen } from 'electron';
 import { registerTodoIpcHandlers } from './todo/event.js';
 
 import path from 'node:path';
@@ -170,24 +167,16 @@ async function createScreenshotWindow() {
     screenshotWindow?.webContents.send('screenshot:trigger');
   });
 
-  screenshotWindow.on('closed', () => {
+  screenshotWindow.on('closed', async () => {
     screenshotWindow = null;
-    // 恢复主窗口
-    // if (mainWindow && windowStateBeforeScreenshot) {
-    //   if (windowStateBeforeScreenshot.isMaximized) {
-    //     mainWindow.maximize();
-    //   } else {
-    //     mainWindow.setBounds({
-    //       x: windowStateBeforeScreenshot.x,
-    //       y: windowStateBeforeScreenshot.y,
-    //       width: windowStateBeforeScreenshot.width,
-    //       height: windowStateBeforeScreenshot.height,
-    //     });
-    //   }
-    //   mainWindow.show();
-    //   windowStateBeforeScreenshot = null;
-    // }
+    // 更新截图事件处理器中的窗口引用
+    const { updateScreenshotWindowRefs } = await import('./screenshot/event.js');
+    updateScreenshotWindowRefs(mainWindow, screenshotWindow, editorWindow, windowStateBeforeScreenshot);
   });
+  
+  // 创建窗口后更新截图事件处理器中的窗口引用
+  const { updateScreenshotWindowRefs } = await import('./screenshot/event.js');
+  updateScreenshotWindowRefs(mainWindow, screenshotWindow, editorWindow, windowStateBeforeScreenshot);
 }
 
 
@@ -244,6 +233,11 @@ async function createEditorWindow() {
     }
   });
 
+  // 监听窗口加载完成事件，确保可以接收 IPC 消息
+  editorWindow.webContents.once('did-finish-load', () => {
+    logger.info('Editor window loaded and ready to receive messages');
+  });
+
   logger.info('Editor window created and hidden');
 }
 
@@ -271,162 +265,72 @@ function showEditorWindow(imageDataUrl: string) {
     }
   }
 
-  // 发送图片数据
-  editorWindow.webContents.send('screenshot:edit-image', imageDataUrl);
-  
-  // 显示并聚焦窗口
+  // 先显示窗口，确保窗口已经加载
   editorWindow.show();
   editorWindow.focus();
+
+  // 等待窗口加载完成后再发送图片数据
+  // 如果窗口已经加载，直接发送；否则等待加载完成
+  if (editorWindow.webContents.isLoading()) {
+    editorWindow.webContents.once('did-finish-load', () => {
+      editorWindow?.webContents.send('screenshot:edit-image', imageDataUrl);
+    });
+  } else {
+    // 窗口已经加载，直接发送
+    editorWindow.webContents.send('screenshot:edit-image', imageDataUrl);
+  }
 
   logger.info('Editor window shown with image data');
 }
 
 
-function registerScreenshotIpcHandlers() {
-  ipcMain.handle('screenshot:capture', async (_event, region: { x: number; y: number; width: number; height: number }) => {
-    const dataUrl = await captureScreenRegion(region);
-    const item = {
-      id: crypto.randomUUID(),
-      hash: crypto.createHash('sha256').update(dataUrl).digest('hex'),
-      dataUrl,
-      createdAt: Date.now(),
-    };
-    await screenshotHistoryStore.add(item);
-    // 通知渲染进程有新的截图
-    mainWindow?.webContents.send('screenshot:new-item', item);
-    
-    // 关闭截图窗口
-    if (screenshotWindow) {
-      screenshotWindow.close();
-      screenshotWindow = null;
-    }
-    
-    // 隐藏主窗口
-    if (mainWindow) {
-      mainWindow.hide();
-    }
-    
-    // 显示编辑窗口
-    showEditorWindow(dataUrl);
-    
-    return item;
-  });
-
-  ipcMain.handle('screenshot:get-history', () => screenshotHistoryStore.getAll());
-  
-  // 处理截图取消事件
-  ipcMain.handle('screenshot:cancel', () => {
-    // 关闭截图窗口并恢复主窗口
-    if (screenshotWindow) {
-      screenshotWindow.close();
-      screenshotWindow = null;
-    }
-    if (mainWindow && windowStateBeforeScreenshot) {
-      if (windowStateBeforeScreenshot.isMaximized) {
-        mainWindow.maximize();
-      } else {
-        mainWindow.setBounds({
-          x: windowStateBeforeScreenshot.x,
-          y: windowStateBeforeScreenshot.y,
-          width: windowStateBeforeScreenshot.width,
-          height: windowStateBeforeScreenshot.height,
-        });
-      }
-      mainWindow.show();
-      windowStateBeforeScreenshot = null;
-    }
-  });
-
-  // 处理编辑器关闭（隐藏窗口）
-  ipcMain.handle('screenshot:editor-close', () => {
-    if (editorWindow) {
-      editorWindow.hide();
-    }
-    // 恢复主窗口
-    if (mainWindow && windowStateBeforeScreenshot) {
-      if (windowStateBeforeScreenshot.isMaximized) {
-        mainWindow.maximize();
-      } else {
-        mainWindow.setBounds({
-          x: windowStateBeforeScreenshot.x,
-          y: windowStateBeforeScreenshot.y,
-          width: windowStateBeforeScreenshot.width,
-          height: windowStateBeforeScreenshot.height,
-        });
-      }
-      mainWindow.show();
-      windowStateBeforeScreenshot = null;
-    } else if (mainWindow) {
-      mainWindow.show();
-    }
-  });
-
-  // 处理固定截图
-  ipcMain.handle('screenshot:pin', (_event, imageDataUrl: string) => {
-    const id = crypto.randomUUID();
-    createPinnedWindow(imageDataUrl, id);
-    return id;
-  });
-
-  // 处理确认（保存编辑后的截图）
-  ipcMain.handle('screenshot:confirm', async (_event, editedImageDataUrl: string) => {
-    const item = {
-      id: crypto.randomUUID(),
-      dataUrl: editedImageDataUrl,
-      createdAt: Date.now(),
-    };
-    // await screenshotHistoryStore.add(item);
-    // 通知渲染进程有新的截图
-    // mainWindow?.webContents.send('screenshot:new-item', item);
-    
-    // 隐藏编辑窗口
-    if (editorWindow) {
-      editorWindow.hide();
-    }
-    
-    // 恢复主窗口
-    if (mainWindow && windowStateBeforeScreenshot) {
-      if (windowStateBeforeScreenshot.isMaximized) {
-        mainWindow.maximize();
-      } else {
-        mainWindow.setBounds({
-          x: windowStateBeforeScreenshot.x,
-          y: windowStateBeforeScreenshot.y,
-          width: windowStateBeforeScreenshot.width,
-          height: windowStateBeforeScreenshot.height,
-        });
-      }
-      mainWindow.show();
-      windowStateBeforeScreenshot = null;
-    } else if (mainWindow) {
-      mainWindow.show();
-    }
-    
-    return item;
-  });
-}
 
 
 
 
 app.whenReady().then(async () => {
+  // 注册剪贴板和登录历史的 IPC 处理器（不依赖窗口）
+  const { clipboardEventOn } = await import('./clipboard/event.js');
+  const { loginHistoryEventOn } = await import('./loginHistory/event.js');
+  clipboardEventOn();
+  loginHistoryEventOn();
+  
+  // 创建主窗口
   await createMainWindow();
   // 创建编辑窗口（隐藏状态）
   await createEditorWindow();
   
-  registerScreenshotIpcHandlers();
   registerTodoIpcHandlers(mainWindow as BrowserWindow);
   
-  // 注册所有事件处理器（包括快捷键）
-  registerEvent(mainWindow as BrowserWindow, createScreenshotWindow);
+  // 注册依赖窗口的事件处理器（快捷键）
+  // 必须在窗口创建后立即注册，确保渲染进程在调用 IPC 时处理器已经存在
+  if (mainWindow) {
+    registerEvent(mainWindow, createScreenshotWindow);
+    
+    // 注册截图相关的 IPC 事件处理器（依赖窗口）
+    const { screenshotEventOn } = await import('./screenshot/event.js');
+    screenshotEventOn(mainWindow, screenshotWindow, editorWindow, windowStateBeforeScreenshot, showEditorWindow);
+    
+    logger.info('IPC handlers registered: shortcuts and screenshot');
+  }
 
   app.on('activate', async () => {
     if (BrowserWindow.getAllWindows().length === 0) {
+      // 重新注册不依赖窗口的 IPC 处理器
+      const { clipboardEventOn } = await import('./clipboard/event.js');
+      const { loginHistoryEventOn } = await import('./loginHistory/event.js');
+      clipboardEventOn();
+      loginHistoryEventOn();
+      
       await createMainWindow();
       await createEditorWindow();
-      // 重新注册事件处理器
+      // 重新注册依赖窗口的事件处理器
       if (mainWindow) {
         registerEvent(mainWindow, createScreenshotWindow);
+        
+        // 重新注册截图相关的 IPC 事件处理器
+        const { screenshotEventOn } = await import('./screenshot/event.js');
+        screenshotEventOn(mainWindow, screenshotWindow, editorWindow, windowStateBeforeScreenshot, showEditorWindow);
       }
     }
   });

@@ -1,16 +1,31 @@
 import { useState } from 'react';
 import { AiAuthPanel } from '../ai-auth/AiAuthPanel';
 import { ShortcutsPanel } from '../shortcuts/ShortcutsPanel';
+import { ProfilePanel } from '../profile/ProfilePanel';
+import { useAppStore } from '../../store/useAppStore';
 
-type TabId = 'aiAuth' | 'shortcuts';
+type TabId = 'profile' | 'aiAuth' | 'shortcuts';
 
-const TABS: Array<{ id: TabId; label: string }> = [
-  { id: 'aiAuth', label: 'AI 鉴权管理' },
-  { id: 'shortcuts', label: '快捷键管理' },
+const TABS: Array<{ id: TabId; label: string; showForGuest?: boolean }> = [
+  { id: 'profile', label: '个人信息', showForGuest: false },
+  { id: 'aiAuth', label: 'AI 鉴权管理', showForGuest: false },
+  { id: 'shortcuts', label: '快捷键管理', showForGuest: false },
 ];
 
 export function SettingsPanel({ onClose }: { onClose: () => void }) {
-  const [activeTab, setActiveTab] = useState<TabId>('shortcuts');
+  const { user } = useAppStore();
+  const isGuest = user?.user_type === 'guest';
+  
+  // 过滤掉路人用户不可见的 tab
+  const visibleTabs = TABS.filter((tab) => !isGuest || tab.showForGuest !== false);
+  
+  const [activeTab, setActiveTab] = useState<TabId>(() => {
+    // 如果是路人用户，默认选择 shortcuts（如果可见）
+    if (isGuest) {
+      return visibleTabs.find((tab) => tab.id === 'shortcuts')?.id || visibleTabs[0]?.id || 'shortcuts';
+    }
+    return 'profile';
+  });
 
   return (
     <div className="flex flex-col h-full">
@@ -41,7 +56,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
       {/* Tab 导航 */}
       <div className="border-b border-slate-200 px-6">
         <div className="flex gap-1">
-          {TABS.map((tab) => (
+          {visibleTabs.map((tab) => (
             <button
               key={tab.id}
               className={`px-4 py-3 text-sm font-medium transition border-b-2 ${
@@ -59,6 +74,11 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
 
       {/* Tab 内容 */}
       <div className="flex-1 overflow-hidden">
+        {activeTab === 'profile' && (
+          <div className="h-full overflow-hidden">
+            <ProfilePanel />
+          </div>
+        )}
         {activeTab === 'aiAuth' && (
           <div className="h-full overflow-hidden">
             <AiAuthPanel />

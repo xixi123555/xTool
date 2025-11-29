@@ -185,6 +185,8 @@ export function shortcutEventOn(mainWindow: BrowserWindow, createScreenshotWindo
   registerOpenSettingsShortcuts();
   registerShowClipboardShortcuts();
 
+  logger.info('Registering shortcut IPC handlers...');
+
   // 获取截图快捷键
   ipcMain.handle('shortcut:get-screenshot', () => {
     return currentScreenshotShortcut;
@@ -277,6 +279,7 @@ export function shortcutEventOn(mainWindow: BrowserWindow, createScreenshotWindo
 
   // 应用用户的快捷键配置
   ipcMain.handle('shortcut:apply-user-shortcuts', (_event, shortcuts: Record<string, string>) => {
+    logger.info('shortcut:apply-user-shortcuts handler called with shortcuts:', shortcuts);
     try {
       // 应用截图快捷键（如果有自定义的，否则使用默认值）
       if (shortcuts && shortcuts.screenshot) {

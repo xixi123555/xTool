@@ -2,8 +2,8 @@ import { clipboard, nativeImage, ipcMain } from 'electron';
 import { clipboardHistoryStore } from './store';
 
 export const clipboardEventOn = () => {
-    ipcMain.handle('clipboard:get-history', () => clipboardHistoryStore.getAll());
-    ipcMain.handle('clipboard:clear', () => clipboardHistoryStore.clear());
+    ipcMain.handle('clipboard:get-history', async () => await clipboardHistoryStore.getAll());
+    ipcMain.handle('clipboard:clear', async () => await clipboardHistoryStore.clear());
     
     ipcMain.handle('clipboard:write', (_event, item: { type?: 'text' | 'image'; content: string }) => {
       try {

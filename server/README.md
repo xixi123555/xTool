@@ -1,75 +1,121 @@
 # xTool Server
 
-xTool 后端服务器，基于 Node.js + Express + MySQL。
+xTool 后端服务器
 
-## 功能
+## 功能特性
 
-- 用户认证（登录、注册、路人登录）
-- AppKey 管理（存储 Dify 工作流的 API Key）
-- 权限控制（路人用户无法使用翻译和网页阅读器）
+- 用户注册/登录
+- 邮箱验证码登录
+- 路人身份登录
+- AppKey 管理
+- 快捷键管理
 
-## 安装
+## 环境配置
 
-```bash
-cd server
-npm install
-```
-
-## 配置
-
-1. 复制 `.env.example` 为 `.env`（如果文件不存在，手动创建）
-2. 配置数据库和 JWT Secret：
+在项目根目录创建 `.env` 文件，配置以下环境变量：
 
 ```env
-PORT=5198
+# 数据库配置
 DB_HOST=localhost
 DB_PORT=3306
 DB_USER=root
 DB_PASSWORD=your_password
 DB_NAME=xtool_db
-JWT_SECRET=your_jwt_secret_key_change_this_in_production
+
+# JWT 密钥
+JWT_SECRET=your_jwt_secret_key
+
+# 服务器端口
+PORT=5198
+
+# SMTP 邮件配置（用于发送验证码）
+SMTP_HOST=smtp.qq.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your_email@qq.com
+SMTP_PASS=your_email_auth_code
 ```
 
-## 数据库设置
+### 邮件服务配置说明
 
-1. 创建 MySQL 数据库：
-```sql
-CREATE DATABASE xtool_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+#### QQ 邮箱配置
+
+1. 登录 QQ 邮箱
+2. 进入"设置" -> "账户"
+3. 开启"POP3/SMTP服务"或"IMAP/SMTP服务"
+4. 生成授权码（`SMTP_PASS`）
+5. 配置 `.env` 文件：
+   ```env
+   SMTP_HOST=smtp.qq.com
+   SMTP_PORT=587
+   SMTP_SECURE=false
+   SMTP_USER=your_qq_email@qq.com
+   SMTP_PASS=your_auth_code
+   ```
+
+#### 其他邮箱服务商配置
+
+- **Gmail**: 
+  - `SMTP_HOST=smtp.gmail.com`
+  - `SMTP_PORT=587`
+  - `SMTP_SECURE=false`
+  - 需要应用专用密码
+
+- **163 邮箱**:
+  - `SMTP_HOST=smtp.163.com`
+  - `SMTP_PORT=465`
+  - `SMTP_SECURE=true`
+
+- **Outlook**:
+  - `SMTP_HOST=smtp.office365.com`
+  - `SMTP_PORT=587`
+  - `SMTP_SECURE=false`
+
+## 安装依赖
+
+```bash
+npm install
 ```
 
-2. 启动服务器后，表会自动创建
+## 开发
 
-## 运行
-
-开发模式：
 ```bash
 npm run dev
 ```
 
-生产模式：
+## 构建
+
+```bash
+npm run build
+```
+
+## 生产运行
+
 ```bash
 npm start
 ```
 
 ## API 接口
 
-### 认证接口
+### 认证相关
 
 - `POST /api/auth/register` - 用户注册
-- `POST /api/auth/login` - 用户登录
+- `POST /api/auth/login` - 密码登录
+- `POST /api/auth/login-by-code` - 验证码登录
+- `POST /api/auth/send-code` - 发送验证码
 - `POST /api/auth/guest` - 路人身份登录
 - `GET /api/auth/me` - 获取当前用户信息
 
-### AppKey 接口（需要认证）
+### AppKey 管理
 
 - `POST /api/appkey/save` - 保存/更新 AppKey
-- `GET /api/appkey/get/:workflowType` - 获取 AppKey
-- `GET /api/appkey/all` - 获取所有 AppKeys
+- `GET /api/appkey/get/:keyName` - 根据 keyName 获取 AppKey
+- `GET /api/appkey/all` - 获取所有 AppKey
+- `PUT /api/appkey/update/:id` - 更新 AppKey
+- `DELETE /api/appkey/delete/:id` - 删除 AppKey
 
-## 使用说明
+### 快捷键管理
 
-1. 启动服务器
-2. 在前端注册或登录
-3. 登录后，可以通过 API 保存你的 Dify AppKey
-4. 路人用户无法使用翻译和网页阅读器功能
-
+- `GET /api/shortcut/all` - 获取所有自定义快捷键
+- `POST /api/shortcut/save` - 保存/更新快捷键
+- `DELETE /api/shortcut/delete/:actionName` - 删除快捷键

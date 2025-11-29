@@ -11,6 +11,7 @@ export interface User {
   username: string;
   password?: string;
   email?: string | null;
+  avatar?: string | null;
   user_type: UserType;
   created_at?: Date;
   updated_at?: Date;

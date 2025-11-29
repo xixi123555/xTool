@@ -33,7 +33,18 @@ function MainApp() {
         const parsedShortcuts = JSON.parse(savedShortcuts);
         setShortcuts(parsedShortcuts);
         // 应用快捷键配置（包括默认快捷键）
-        window.api.invoke('shortcut:apply-user-shortcuts', parsedShortcuts || {});
+        // 延迟调用，确保 IPC 处理器已经注册
+        setTimeout(() => {
+          window.api.invoke('shortcut:apply-user-shortcuts', parsedShortcuts || {}).catch((error) => {
+            console.error('Failed to apply user shortcuts:', error);
+            // 如果失败，稍后重试
+            setTimeout(() => {
+              window.api.invoke('shortcut:apply-user-shortcuts', parsedShortcuts || {}).catch((err) => {
+                console.error('Retry failed to apply user shortcuts:', err);
+              });
+            }, 1000);
+          });
+        }, 500);
       }
     }
   }, [setToken, setUser, setShortcuts]);
@@ -158,7 +169,16 @@ export function App() {
   }
 
   // 编辑器模式（不需要登录）
-  if (isEditorMode && editingImage) {
+  if (isEditorMode) {
+    // 如果还没有收到图片数据，等待一下
+    if (!editingImage) {
+      // 等待图片数据到达
+      return (
+        <div className="flex h-screen items-center justify-center bg-slate-900">
+          <div className="text-slate-400">加载中...</div>
+        </div>
+      );
+    }
     return (
       <ScreenshotEditor
         imageSrc={editingImage}

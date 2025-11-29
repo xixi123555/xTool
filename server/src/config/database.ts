@@ -43,11 +43,27 @@ export async function initDatabase(): Promise<void> {
         username VARCHAR(50) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
         email VARCHAR(100),
+        avatar TEXT,
         user_type ENUM('normal', 'guest') DEFAULT 'normal',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     `);
+
+    // 如果表已存在，添加 avatar 字段（如果不存在）
+    try {
+      await pool.execute(`
+        ALTER TABLE users 
+        ADD COLUMN avatar TEXT
+      `);
+    } catch (error: any) {
+      // 如果字段已存在，忽略错误
+      if (error.message?.includes('Duplicate column name') || error.code === 'ER_DUP_FIELDNAME') {
+        console.log('avatar 字段已存在，跳过添加');
+      } else {
+        console.warn('添加 avatar 字段时出错:', error.message);
+      }
+    }
 
     // 创建 appKey 表
     await pool.execute(`

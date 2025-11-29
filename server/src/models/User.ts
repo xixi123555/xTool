@@ -46,6 +46,17 @@ export class User {
   }
 
   /**
+   * 根据邮箱查找用户
+   */
+  static async findByEmail(email: string): Promise<UserType | null> {
+    const [rows] = await pool.execute(
+      'SELECT * FROM users WHERE email = ?',
+      [email]
+    ) as [UserType[], any];
+    return rows[0] || null;
+  }
+
+  /**
    * 验证密码
    */
   static async verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
@@ -60,6 +71,37 @@ export class User {
     const guestPassword = Math.random().toString(36).substring(2, 22);
     const userId = await this.create(guestUsername, guestPassword, null, 'guest');
     return { id: userId, username: guestUsername, user_type: 'guest' };
+  }
+
+  /**
+   * 更新用户信息
+   */
+  static async update(id: number, updates: { username?: string; email?: string | null; avatar?: string | null }): Promise<void> {
+    const fields: string[] = [];
+    const values: any[] = [];
+
+    if (updates.username !== undefined) {
+      fields.push('username = ?');
+      values.push(updates.username);
+    }
+    if (updates.email !== undefined) {
+      fields.push('email = ?');
+      values.push(updates.email);
+    }
+    if (updates.avatar !== undefined) {
+      fields.push('avatar = ?');
+      values.push(updates.avatar);
+    }
+
+    if (fields.length === 0) {
+      return;
+    }
+
+    values.push(id);
+    await pool.execute(
+      `UPDATE users SET ${fields.join(', ')} WHERE id = ?`,
+      values
+    );
   }
 }
 
