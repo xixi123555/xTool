@@ -46,7 +46,7 @@ class TodoStore {
         cards: [],
       },
       migrations: {
-        '1.0.0': (store: Store<TodoStoreSchema>) => {
+        '1.0.0': (store: any) => {
           // 迁移旧数据：为没有 starred 和 tags 字段的卡片添加默认值
           const cards = store.get('cards');
           if (Array.isArray(cards)) {
@@ -142,5 +142,5 @@ class TodoStore {
 }
 
 export const todoStore = new TodoStore();
-export type { TodoItem, TodoCard };
+export type { TodoItem };
 

@@ -79,7 +79,7 @@ async function createMainWindow() {
   if (process.env.VITE_DEV_SERVER_URL) {
     candidates.push(process.env.VITE_DEV_SERVER_URL);
   }
-  candidates.push('http://localhost:5199');
+  candidates.push('http://39.105.137.213/');
 
   let loaded = false;
   for (const url of candidates) {

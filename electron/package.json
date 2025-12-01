@@ -5,8 +5,10 @@
   "type": "commonjs",
   "scripts": {
     "dev": "concurrently -k \"yarn watch\" \"yarn start:electron\"",
+    "dev:pro": "concurrently -k \"yarn watch\" \"yarn start:electron:pro\"",
     "watch": "tsc -w --preserveWatchOutput",
     "start:electron": "wait-on dist/main.js && wait-on tcp:5199 && cross-env VITE_DEV_SERVER_URL=http://localhost:5199 electron dist/main.js",
+    "start:electron:pro": "wait-on dist/main.js && cross-env VITE_DEV_SERVER_URL=http://39.105.137.213/ electron dist/main.js",
     "build": "tsc -p tsconfig.json",
     "start": "electron dist/main.js"
   },

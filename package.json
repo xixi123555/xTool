@@ -10,6 +10,7 @@
   ],
   "scripts": {
     "dev": "concurrently \"yarn workspace devtools-suite-renderer dev\" \"yarn workspace devtools-suite-electron dev\"",
+    "dev:pro": "yarn workspace devtools-suite-electron dev:pro",
     "build": "yarn workspace devtools-suite-renderer build && yarn workspace devtools-suite-electron build",
     "postinstall": "electron-builder install-app-deps",
     "dist": "yarn build && electron-builder --config electron-builder.yml",
