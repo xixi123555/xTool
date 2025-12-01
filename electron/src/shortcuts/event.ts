@@ -174,6 +174,7 @@ function registerShowClipboardShortcuts(shortcut?: string) {
  * 注册所有快捷键 IPC 处理器
  */
 export function shortcutEventOn(mainWindow: BrowserWindow, createScreenshotWindow: () => void) {
+  logger.info('shortcutEventOn called, registering handlers...');
   mainWindowRef = mainWindow;
   createScreenshotWindowFn = createScreenshotWindow;
 
@@ -185,7 +186,7 @@ export function shortcutEventOn(mainWindow: BrowserWindow, createScreenshotWindo
   registerOpenSettingsShortcuts();
   registerShowClipboardShortcuts();
 
-  logger.info('Registering shortcut IPC handlers...');
+  logger.info('Default shortcuts registered, now registering IPC handlers...');
 
   // 获取截图快捷键
   ipcMain.handle('shortcut:get-screenshot', () => {
@@ -311,5 +312,7 @@ export function shortcutEventOn(mainWindow: BrowserWindow, createScreenshotWindo
       return { success: false, error: '应用快捷键失败' };
     }
   });
+  
+  logger.info('All shortcut IPC handlers registered successfully');
 }
 

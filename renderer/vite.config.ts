@@ -164,6 +164,15 @@ export default defineConfig({
   ],
   build: {
     outDir: 'dist',
+    // 使用相对路径，确保打包后资源能正确加载
+    base: './',
+    assetsDir: 'assets',
+    rollupOptions: {
+      output: {
+        // 确保资源使用相对路径
+        assetFileNames: 'assets/[name].[ext]',
+      },
+    },
   },
   server: {
     port: 5199,

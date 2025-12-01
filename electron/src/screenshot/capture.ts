@@ -9,15 +9,16 @@ export async function captureScreenRegion(region: { x: number; y: number; width:
   const fullWidth = width * scaleFactor;
   const fullHeight = height * scaleFactor;
   
-  const sources = await desktopCapturer.getSources({
-    types: ['screen'],
-    thumbnailSize: { width: fullWidth, height: fullHeight },
-  });
+  try {
+    const sources = await desktopCapturer.getSources({
+      types: ['screen'],
+      thumbnailSize: { width: fullWidth, height: fullHeight },
+    });
 
-  const primarySource = sources[0];
-  if (!primarySource) {
-    throw new Error('No screen source available');
-  }
+    const primarySource = sources[0];
+    if (!primarySource) {
+      throw new Error('No screen source available. Please grant screen recording permission in System Settings.');
+    }
 
   // 将屏幕坐标转换为缩略图坐标（考虑缩放因子）
   const thumbnailX = Math.max(region.x * scaleFactor, 0);
@@ -25,14 +26,21 @@ export async function captureScreenRegion(region: { x: number; y: number; width:
   const thumbnailWidth = Math.max(region.width * scaleFactor, 0);
   const thumbnailHeight = Math.max(region.height * scaleFactor, 0);
 
-  const thumbnail = primarySource.thumbnail.crop({
-    x: thumbnailX,
-    y: thumbnailY,
-    width: thumbnailWidth,
-    height: thumbnailHeight,
-  });
+    const thumbnail = primarySource.thumbnail.crop({
+      x: thumbnailX,
+      y: thumbnailY,
+      width: thumbnailWidth,
+      height: thumbnailHeight,
+    });
 
-  return thumbnail.toDataURL();
+    return thumbnail.toDataURL();
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes('Failed to get sources') || errorMessage.includes('screen recording')) {
+      throw new Error('Screen recording permission is required. Please grant permission in System Settings > Privacy & Security > Screen Recording.');
+    }
+    throw error;
+  }
 }
 
 export async function captureFullScreen() {
@@ -44,15 +52,23 @@ export async function captureFullScreen() {
   const fullWidth = width * scaleFactor;
   const fullHeight = height * scaleFactor;
   
-  const sources = await desktopCapturer.getSources({
-    types: ['screen'],
-    thumbnailSize: { width: fullWidth, height: fullHeight },
-  });
+  try {
+    const sources = await desktopCapturer.getSources({
+      types: ['screen'],
+      thumbnailSize: { width: fullWidth, height: fullHeight },
+    });
 
-  const primarySource = sources[0];
-  if (!primarySource) {
-    throw new Error('No screen source available');
+    const primarySource = sources[0];
+    if (!primarySource) {
+      throw new Error('No screen source available. Please grant screen recording permission in System Settings.');
+    }
+
+    return primarySource.thumbnail.toDataURL();
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes('Failed to get sources') || errorMessage.includes('screen recording')) {
+      throw new Error('Screen recording permission is required. Please grant permission in System Settings > Privacy & Security > Screen Recording.');
+    }
+    throw error;
   }
-
-  return primarySource.thumbnail.toDataURL();
 }

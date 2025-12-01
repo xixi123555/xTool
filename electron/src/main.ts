@@ -18,7 +18,19 @@ function resolveHtmlPath() {
   if (process.env.VITE_DEV_SERVER_URL) {
     return process.env.VITE_DEV_SERVER_URL;
   }
-  return path.join(__dirname, '../../renderer/dist/index.html');
+  
+  // 打包后的路径处理
+  if (app.isPackaged) {
+    // 打包后，renderer/dist 在 asar 中，路径相对于 app.asar
+    const asarPath = path.join(process.resourcesPath, 'app.asar', 'renderer', 'dist', 'index.html');
+    logger.info(`Resolved HTML path (packaged): ${asarPath}`);
+    return asarPath;
+  }
+  
+  // 开发环境
+  const devPath = path.join(__dirname, '../../renderer/dist/index.html');
+  logger.info(`Resolved HTML path (dev): ${devPath}`);
+  return devPath;
 }
 
 async function waitForRendererReady(url: string, timeoutMs = 30000) {
@@ -74,34 +86,62 @@ async function createMainWindow() {
     },
   });
 
-  // Prefer dev server when available; probe multiple common ports if env not set
-  const candidates: string[] = [];
-  if (process.env.VITE_DEV_SERVER_URL) {
-    candidates.push(process.env.VITE_DEV_SERVER_URL);
-  }
-  candidates.push('http://39.105.137.213/');
-
-  let loaded = false;
-  for (const url of candidates) {
+  // 优先使用开发服务器（仅在开发环境且设置了环境变量时）
+  if (process.env.VITE_DEV_SERVER_URL && !app.isPackaged) {
     try {
-      logger.info(`Probing renderer dev server at ${url}`);
-      await waitForRendererReady(url, 8000);
-      await mainWindow.loadURL(url);
-      logger.info(`Loaded renderer from dev server ${url}`);
-      loaded = true;
-      break;
+      logger.info(`Loading from dev server: ${process.env.VITE_DEV_SERVER_URL}`);
+      await waitForRendererReady(process.env.VITE_DEV_SERVER_URL, 8000);
+      await mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
+      logger.info(`Loaded renderer from dev server ${process.env.VITE_DEV_SERVER_URL}`);
     } catch (error) {
-      logger.info(`Dev server not reachable at ${url}: ${(error as Error).message}`);
+      logger.warn(`Dev server not reachable, falling back to local file: ${(error as Error).message}`);
+      // 如果开发服务器不可用，回退到本地文件
+      const htmlPath = resolveHtmlPath();
+      logger.info(`Loading renderer from local file: ${htmlPath}`);
+      await mainWindow.loadFile(htmlPath);
+    }
+  } else {
+    // 打包后或没有开发服务器，直接加载本地文件
+    const htmlPath = resolveHtmlPath();
+    logger.info(`Loading renderer from local file: ${htmlPath}`);
+    
+    // 检查文件是否存在
+    const fs = require('fs');
+    if (fs.existsSync(htmlPath)) {
+      logger.info(`HTML file exists at: ${htmlPath}`);
+    } else {
+      logger.error(`HTML file does not exist at: ${htmlPath}`);
+      // 尝试其他可能的路径
+      const alternativePaths = [
+        path.join(process.resourcesPath, 'app.asar', 'renderer', 'dist', 'index.html'),
+        path.join(__dirname, '..', '..', 'renderer', 'dist', 'index.html'),
+        path.join(app.getAppPath(), 'renderer', 'dist', 'index.html'),
+      ];
+      for (const altPath of alternativePaths) {
+        if (fs.existsSync(altPath)) {
+          logger.info(`Found alternative path: ${altPath}`);
+          try {
+            await mainWindow.loadFile(altPath);
+            logger.info(`Successfully loaded from alternative path: ${altPath}`);
+            return;
+          } catch (err) {
+            logger.error(`Failed to load from alternative path ${altPath}: ${(err as Error).message}`);
+          }
+        }
+      }
+    }
+    
+    try {
+      await mainWindow.loadFile(htmlPath);
+      logger.info(`Successfully loaded HTML file from: ${htmlPath}`);
+    } catch (error) {
+      logger.error(`Failed to load local file: ${htmlPath}, error: ${(error as Error).message}`);
+      logger.error(`Error stack: ${(error as Error).stack}`);
+      throw error;
     }
   }
 
-  if (!loaded) {
-    const htmlPath = resolveHtmlPath();
-    logger.info(`Dev server unavailable. Loading renderer from ${htmlPath}`);
-    await mainWindow.loadFile(htmlPath);
-  }
-
-  // Open DevTools for debugging renderer issues
+  // Open DevTools for debugging renderer issues (开发环境和打包后都打开)
   mainWindow.webContents.openDevTools({ mode: 'detach' });
 
   createClipboardWatcher({
@@ -156,7 +196,7 @@ async function createScreenshotWindow() {
 
   // 加载截图选择器页面
   const htmlPath = resolveHtmlPath();
-  if (process.env.VITE_DEV_SERVER_URL) {
+  if (process.env.VITE_DEV_SERVER_URL && !app.isPackaged) {
     await screenshotWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}?screenshot=true`);
   } else {
     await screenshotWindow.loadFile(htmlPath, { query: { screenshot: 'true' } });
@@ -219,7 +259,7 @@ async function createEditorWindow() {
 
   // 加载编辑页面
   const htmlPath = resolveHtmlPath();
-  if (process.env.VITE_DEV_SERVER_URL) {
+  if (process.env.VITE_DEV_SERVER_URL && !app.isPackaged) {
     await editorWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}?editor=true`);
   } else {
     await editorWindow.loadFile(htmlPath, { query: { editor: 'true' } });

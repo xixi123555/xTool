@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -p tsconfig.json && vite build",
+    "build": "tsc -p tsconfig.json && vite build && node fix-html-paths.js",
     "preview": "vite preview"
   },
   "dependencies": {
