@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { TodoCard } from './TodoCard';
+import { TodoItemComponent } from './TodoItem';
 import { useIpcEvent } from '../../hooks/useIpcEvent';
 
 type TodoItem = {
@@ -94,18 +94,18 @@ export function TodoList() {
         </button>
       </div>
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
-        <div className="grid grid-cols-2 gap-3 pb-4">
+        <div className="space-y-1 pb-4">
           {todos.map((todo) => (
-            <TodoCard
+            <TodoItemComponent
               key={todo.id}
-              todo={todo}
-              onUpdate={handleUpdate}
-              onDelete={handleDelete}
+              item={todo}
+              onUpdate={(updates) => handleUpdate(todo.id, updates)}
+              onDelete={() => handleDelete(todo.id)}
               isNew={!todo.content && Date.now() - todo.createdAt < 1000}
             />
           ))}
           {todos.length === 0 && (
-            <div className="col-span-2 text-center text-slate-400 text-sm py-8">
+            <div className="text-center text-slate-400 text-sm py-8">
               暂无待办事项，点击"添加"按钮创建
             </div>
           )}

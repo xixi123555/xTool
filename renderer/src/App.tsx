@@ -10,7 +10,7 @@ import { AppRouter } from './router';
 import { useState, useEffect } from 'react';
 import { useAppStore } from './store/useAppStore';
 import { useIpcEvent } from './hooks/useIpcEvent';
-const { showToast } = await import('./components/toast/Toast');
+import { showToast } from './components/toast/Toast';
 
 // 主应用内容组件（需要登录）
 function MainApp() {
@@ -65,10 +65,7 @@ function MainApp() {
   useIpcEvent<{ id: string; dataUrl: string }>('screenshot:show-draggable', (item) => {
     if (item?.dataUrl) {
       setDraggables((s) => [{ id: item.id, src: item.dataUrl }, ...s]);
-      (async () => {
-        const { showToast } = await import('./components/toast/Toast');
-        showToast('截图已保存');
-      })();
+      showToast('截图已保存');
     }
   });
 
@@ -84,7 +81,7 @@ function MainApp() {
     const item = (await window.api.invoke('screenshot:capture', region)) as { id: string; dataUrl: string };
     if (item?.dataUrl) {
       setDraggables((s) => [{ id: item.id, src: item.dataUrl }, ...s]);
-      (await import('./components/toast/Toast')).showToast('截图已保存');
+      showToast('截图已保存');
     }
   }
 
@@ -160,7 +157,7 @@ export function App() {
           onConfirm={async (region: { x: number; y: number; width: number; height: number }) => {
             const item = (await window.api.invoke('screenshot:capture', region)) as { id: string; dataUrl: string };
             if (item?.dataUrl) {
-              (await import('./components/toast/Toast')).showToast('截图已保存');
+              showToast('截图已保存');
             }
           }}
         />
@@ -187,16 +184,12 @@ export function App() {
         }}
         onConfirm={async (editedImage) => {
           await window.api.invoke('screenshot:confirm', editedImage);
-          (async () => {
-            showToast('截图已保存');
-          })();
+          showToast('截图已保存');
         }}
         onPin={async (imageDataUrl) => {
           await window.api.invoke('screenshot:pin', imageDataUrl);
           await window.api.invoke('screenshot:confirm', imageDataUrl);
-          (async () => {
-            showToast('截图已固定');
-          })();
+          showToast('截图已固定');
         }}
       />
     );

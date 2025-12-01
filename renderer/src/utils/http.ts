@@ -38,7 +38,7 @@ httpClient.interceptors.response.use(
   (response) => {
     return response;
   },
-  (error: AxiosError) => {
+  (error: AxiosError<{ message?: string }>) => {
     // 统一错误处理
     if (error.response) {
       // 服务器返回了错误状态码
