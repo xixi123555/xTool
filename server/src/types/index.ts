@@ -48,6 +48,30 @@ export interface AppSetting {
   updated_at?: Date;
 }
 
+// 待办事项项接口
+export interface TodoItem {
+  id: string;
+  card_id: string;
+  content: string;
+  completed: boolean;
+  deleted: boolean;
+  created_at: number;
+  updated_at: number;
+}
+
+// 待办事项卡片接口
+export interface TodoCard {
+  id: string;
+  user_id: number;
+  name: string;
+  starred: boolean;
+  tags: string[];
+  deleted: boolean;
+  created_at: number;
+  updated_at: number;
+  items?: TodoItem[];
+}
+
 // JWT Payload
 export interface JWTPayload {
   userId: number;

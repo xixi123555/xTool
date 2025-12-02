@@ -126,6 +126,40 @@ export async function initDatabase(): Promise<void> {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     `);
 
+    // 创建待办事项卡片表
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS todo_cards (
+        id VARCHAR(100) PRIMARY KEY,
+        user_id INT NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        starred BOOLEAN DEFAULT FALSE,
+        tags JSON,
+        deleted BOOLEAN DEFAULT FALSE COMMENT '逻辑删除标记',
+        created_at BIGINT NOT NULL,
+        updated_at BIGINT NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        INDEX idx_user_id (user_id),
+        INDEX idx_deleted (deleted),
+        INDEX idx_starred (starred)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    // 创建待办事项项表
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS todo_items (
+        id VARCHAR(100) PRIMARY KEY,
+        card_id VARCHAR(100) NOT NULL,
+        content TEXT NOT NULL,
+        completed BOOLEAN DEFAULT FALSE,
+        deleted BOOLEAN DEFAULT FALSE COMMENT '逻辑删除标记',
+        created_at BIGINT NOT NULL,
+        updated_at BIGINT NOT NULL,
+        FOREIGN KEY (card_id) REFERENCES todo_cards(id) ON DELETE CASCADE,
+        INDEX idx_card_id (card_id),
+        INDEX idx_deleted (deleted)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
     console.log('数据库表初始化成功');
   } catch (error) {
     console.error('数据库初始化失败:', error);

@@ -1,12 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { TodoItemComponent } from './TodoItem';
+import { useAppStore } from '../../store/useAppStore';
+import { showToast } from '../toast/Toast';
+import { createTodoCard, createTodoItem } from '../../api/todo';
 
 type TodoItem = {
   id: string;
   content: string;
   completed: boolean;
-  createdAt: number;
-  updatedAt: number;
+  createdAt?: number;
+  updatedAt?: number;
+  created_at?: number;
+  updated_at?: number;
 };
 
 type TodoCard = {
@@ -15,8 +20,10 @@ type TodoCard = {
   items: TodoItem[];
   starred: boolean;
   tags: string[];
-  createdAt: number;
-  updatedAt: number;
+  createdAt?: number;
+  updatedAt?: number;
+  created_at?: number;
+  updated_at?: number;
 };
 
 interface TodoCardProps {
@@ -27,13 +34,16 @@ interface TodoCardProps {
   onUpdateItem: (itemId: string, updates: Partial<Omit<TodoItem, 'id'>>) => void;
   onDeleteItem: (itemId: string) => void;
   isNew?: boolean;
+  isOnlineData?: boolean;
 }
 
-export function TodoCard({ card, onUpdateCard, onDeleteCard, onAddItem, onUpdateItem, onDeleteItem, isNew = false }: TodoCardProps) {
+export function TodoCard({ card, onUpdateCard, onDeleteCard, onAddItem, onUpdateItem, onDeleteItem, isNew = false, isOnlineData = false }: TodoCardProps) {
+  const { user } = useAppStore();
   const [isEditingName, setIsEditingName] = useState(false);
   const [name, setName] = useState(card.name);
   const [isEditingTag, setIsEditingTag] = useState(false);
   const [tagInput, setTagInput] = useState('');
+  const [syncing, setSyncing] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const tagInputRef = useRef<HTMLInputElement>(null);
 
@@ -69,12 +79,15 @@ export function TodoCard({ card, onUpdateCard, onDeleteCard, onAddItem, onUpdate
   };
 
   const handleAddItem = () => {
+    const now = Date.now();
     const newItem: TodoItem = {
-      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `${now}-${Math.random().toString(36).substr(2, 9)}`,
       content: '',
       completed: false,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      createdAt: now,
+      updatedAt: now,
+      created_at: now,
+      updated_at: now,
     };
     onAddItem(newItem);
   };
@@ -93,6 +106,46 @@ export function TodoCard({ card, onUpdateCard, onDeleteCard, onAddItem, onUpdate
 
   const handleRemoveTag = (tagToRemove: string) => {
     onUpdateCard({ tags: card.tags.filter((tag) => tag !== tagToRemove) });
+  };
+
+  // 同步本地数据到数据库
+  const handleSync = async () => {
+    // 检查用户身份
+    if (!user || user.user_type === 'guest') {
+      showToast('请登录后再同步数据');
+      return;
+    }
+
+    setSyncing(true);
+    try {
+      // 创建卡片
+      await createTodoCard({
+        id: card.id,
+        name: card.name,
+        starred: card.starred,
+        tags: card.tags,
+      });
+
+      // 创建卡片下的所有待办项
+      for (const item of card.items) {
+        if (item.content) {
+          // 只同步有内容的项
+          await createTodoItem({
+            id: item.id,
+            card_id: card.id,
+            content: item.content,
+            completed: item.completed || false,
+          });
+        }
+      }
+
+      showToast('同步成功');
+    } catch (error) {
+      console.error('同步失败:', error);
+      showToast('同步失败，请稍后重试');
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const handleTagKeyDown = (e: React.KeyboardEvent) => {
@@ -131,6 +184,11 @@ export function TodoCard({ card, onUpdateCard, onDeleteCard, onAddItem, onUpdate
                 </svg>
               )}
             </button>
+            {isOnlineData && (
+              <span className="px-1.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded" title="在线数据">
+                在线
+              </span>
+            )}
             {isEditingName ? (
               <input
                 ref={nameInputRef}
@@ -143,15 +201,34 @@ export function TodoCard({ card, onUpdateCard, onDeleteCard, onAddItem, onUpdate
                 placeholder="输入卡片名称..."
               />
             ) : (
-              <h4
-                className="flex-1 text-sm font-semibold text-slate-800 cursor-pointer hover:text-blue-600 transition-colors"
-                onClick={() => {
-                  setName(card.name);
-                  setIsEditingName(true);
-                }}
+            <h4
+              className="flex-1 text-sm font-semibold text-slate-800 cursor-pointer hover:text-blue-600 transition-colors"
+              onClick={() => {
+                setName(card.name);
+                setIsEditingName(true);
+              }}
+            >
+              {card.name || '未命名卡片'}
+            </h4>
+            )}
+            {/* 同步按钮（只在本地数据模式下显示） */}
+            {!isOnlineData && (
+              <button
+                onClick={handleSync}
+                disabled={syncing}
+                className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                title={syncing ? '同步中...' : '同步到服务器'}
               >
-                {card.name || '未命名卡片'}
-              </h4>
+                {syncing ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                )}
+              </button>
             )}
             <button
               onClick={onDeleteCard}
@@ -168,7 +245,8 @@ export function TodoCard({ card, onUpdateCard, onDeleteCard, onAddItem, onUpdate
         {/* 待办事项列表 */}
         <div className="space-y-1 mb-3">
           {card.items.map((item) => {
-            const isItemNew = !item.content && Date.now() - item.createdAt < 1000;
+            const createdAt = item.createdAt || item.created_at || 0;
+            const isItemNew = !item.content && Date.now() - createdAt < 1000;
             return (
               <TodoItemComponent
                 key={item.id}
@@ -195,7 +273,7 @@ export function TodoCard({ card, onUpdateCard, onDeleteCard, onAddItem, onUpdate
         {/* 底部：时间和标签 */}
         <div className="flex items-center justify-between pt-3 border-t border-slate-200">
           <span className="text-xs text-slate-400">
-            {new Date(card.createdAt).toLocaleDateString()}
+            {new Date(card.createdAt || card.created_at || 0).toLocaleDateString()}
           </span>
           <div className="flex items-center gap-1 flex-wrap justify-end">
             {card.tags.map((tag) => (

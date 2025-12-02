@@ -1,13 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { TodoCard } from '../../components/todo/TodoCard';
 import { useIpcEvent } from '../../hooks/useIpcEvent';
+import { useAppStore } from '../../store/useAppStore';
+import { getTodoCards, createTodoCard, updateTodoCard, deleteTodoCard, createTodoItem, updateTodoItem, deleteTodoItem, type TodoCard as ApiTodoCard, type TodoItem as ApiTodoItem } from '../../api/todo';
 
+// 统一的类型定义（兼容本地和在线数据）
 type TodoItem = {
   id: string;
   content: string;
   completed: boolean;
-  createdAt: number;
-  updatedAt: number;
+  createdAt?: number;
+  updatedAt?: number;
+  created_at?: number;
+  updated_at?: number;
+  card_id?: string;
+  deleted?: boolean;
 };
 
 type TodoCardType = {
@@ -16,65 +23,315 @@ type TodoCardType = {
   items: TodoItem[];
   starred: boolean;
   tags: string[];
-  createdAt: number;
-  updatedAt: number;
+  createdAt?: number;
+  updatedAt?: number;
+  created_at?: number;
+  updated_at?: number;
+  user_id?: number;
+  deleted?: boolean;
 };
 
 export function TodoListPanel() {
+  const { appConfig } = useAppStore();
+  const useLocalData = appConfig.use_local_data;
   const [cards, setCards] = useState<TodoCardType[]>([]);
   const [sortByStar, setSortByStar] = useState(true);
+  const [loading, setLoading] = useState(false);
+
+  // 加载数据
+  const loadCards = async () => {
+    setLoading(true);
+    try {
+      if (useLocalData) {
+        // 使用本地数据
+        const list = (await window.api.invoke('todo:get-all')) as TodoCardType[];
+        // 转换本地数据格式
+        const converted = list.map((card) => ({
+          ...card,
+          created_at: card.createdAt || card.created_at,
+          updated_at: card.updatedAt || card.updated_at,
+          items: (card.items || []).map((item) => ({
+            ...item,
+            created_at: item.createdAt || item.created_at,
+            updated_at: item.updatedAt || item.updated_at,
+          })),
+        }));
+        setCards(converted);
+      } else {
+        // 使用在线数据
+        const response = await getTodoCards();
+        if (response.success && response.cards) {
+          // 转换在线数据格式
+          const converted = response.cards.map((card) => ({
+            ...card,
+            createdAt: card.created_at,
+            updatedAt: card.updated_at,
+            items: (card.items || []).map((item) => ({
+              ...item,
+              createdAt: item.created_at,
+              updatedAt: item.updated_at,
+            })),
+          }));
+          setCards(converted);
+        } else {
+          setCards([]);
+        }
+      }
+    } catch (error) {
+      console.error('加载待办事项失败:', error);
+      setCards([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    (async () => {
-      const list = (await window.api.invoke('todo:get-all')) as TodoCardType[];
-      setCards(list || []);
-    })();
-  }, []);
+    loadCards();
+  }, [useLocalData]);
 
+  // 只在本地数据模式下监听 IPC 事件
   useIpcEvent<TodoCardType>('todo:card-added', (card) => {
-    setCards((prev) => [card, ...prev]);
+    if (useLocalData) {
+      setCards((prev) => [card, ...prev]);
+    }
   });
 
   useIpcEvent<{ cardId: string }>('todo:card-updated', () => {
-    (async () => {
-      const list = (await window.api.invoke('todo:get-all')) as TodoCardType[];
-      setCards(list || []);
-    })();
+    if (useLocalData) {
+      loadCards();
+    }
   });
 
   useIpcEvent<{ cardId: string }>('todo:card-deleted', ({ cardId }) => {
-    setCards((prev) => prev.filter((card) => card.id !== cardId));
+    if (useLocalData) {
+      setCards((prev) => prev.filter((card) => card.id !== cardId));
+    }
   });
 
   useIpcEvent<{ cardId: string }>('todo:item-updated', () => {
-    (async () => {
-      const list = (await window.api.invoke('todo:get-all')) as TodoCardType[];
-      setCards(list || []);
-    })();
+    if (useLocalData) {
+      loadCards();
+    }
   });
 
   const handleAddCard = async () => {
     // 获取所有卡片，计算下一个序号
-    const allCards = (await window.api.invoke('todo:get-all')) as TodoCardType[];
-    const nextNumber = allCards.length + 1;
+    const nextNumber = cards.length + 1;
     const autoName = `待办事项(${nextNumber})`;
+    const now = Date.now();
     
-    const newCard: TodoCardType = {
-      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      name: autoName,
-      items: [],
-      starred: false,
-      tags: [],
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
-    
-    // 先添加到本地状态
-    setCards((prev) => [newCard, ...prev]);
-    // 立即保存到后端
-    await window.api.invoke('todo:add-card', newCard);
-    const list = (await window.api.invoke('todo:get-all')) as TodoCardType[];
-    setCards(list || []);
+    if (useLocalData) {
+      // 使用本地数据
+      const newCard: TodoCardType = {
+        id: `${now}-${Math.random().toString(36).substr(2, 9)}`,
+        name: autoName,
+        items: [],
+        starred: false,
+        tags: [],
+        createdAt: now,
+        updatedAt: now,
+      };
+      // 先添加到本地状态
+      setCards((prev) => [newCard, ...prev]);
+      // 立即保存到本地
+      await window.api.invoke('todo:add-card', newCard);
+      const list = (await window.api.invoke('todo:get-all')) as TodoCardType[];
+      setCards(list || []);
+    } else {
+      // 使用在线数据
+      const newCardId = `${now}-${Math.random().toString(36).substr(2, 9)}`;
+      try {
+        await createTodoCard({
+          id: newCardId,
+          name: autoName,
+          starred: false,
+          tags: [],
+        });
+        await loadCards();
+      } catch (error) {
+        console.error('创建卡片失败:', error);
+      }
+    }
+  };
+
+  const handleUpdateCard = async (cardId: string, updates: Partial<Omit<TodoCardType, 'id'>>) => {
+    if (useLocalData) {
+      // 使用本地数据
+      await window.api.invoke('todo:update-card', cardId, updates);
+      const list = (await window.api.invoke('todo:get-all')) as TodoCardType[];
+      setCards(list || []);
+    } else {
+      // 使用在线数据
+      try {
+        const updateData: { name?: string; starred?: boolean; tags?: string[] } = {};
+        if (updates.name !== undefined) updateData.name = updates.name;
+        if (updates.starred !== undefined) updateData.starred = updates.starred;
+        if (updates.tags !== undefined) updateData.tags = updates.tags;
+        
+        await updateTodoCard(cardId, updateData);
+        await loadCards();
+      } catch (error) {
+        console.error('更新卡片失败:', error);
+      }
+    }
+  };
+
+  const handleDeleteCard = async (cardId: string) => {
+    if (useLocalData) {
+      // 使用本地数据
+      await window.api.invoke('todo:delete-card', cardId);
+      setCards((prev) => prev.filter((card) => card.id !== cardId));
+    } else {
+      // 使用在线数据
+      try {
+        await deleteTodoCard(cardId);
+        await loadCards();
+      } catch (error) {
+        console.error('删除卡片失败:', error);
+      }
+    }
+  };
+
+  const handleAddItem = async (cardId: string, item: TodoItem) => {
+    const existingCard = cards.find((c) => c.id === cardId);
+    if (!existingCard) return;
+
+    // 先更新本地状态
+    setCards((prev) =>
+      prev.map((card) =>
+        card.id === cardId ? { ...card, items: [item, ...(card.items || [])] } : card
+      )
+    );
+
+    if (useLocalData) {
+      // 使用本地数据
+      // 如果 item 有内容，保存到本地
+      if (item.content) {
+        await window.api.invoke('todo:add-item', cardId, item);
+      }
+    } else {
+      // 使用在线数据
+      // 如果 item 有内容，保存到服务器
+      if (item.content) {
+        try {
+          await createTodoItem({
+            id: item.id,
+            card_id: cardId,
+            content: item.content,
+            completed: item.completed || false,
+          });
+          await loadCards();
+        } catch (error) {
+          console.error('创建待办项失败:', error);
+        }
+      }
+    }
+  };
+
+  const handleUpdateItem = async (cardId: string, itemId: string, updates: Partial<Omit<TodoItem, 'id'>>) => {
+    const existingCard = cards.find((c) => c.id === cardId);
+    if (!existingCard) return;
+
+    const existingItem = existingCard.items?.find((i) => i.id === itemId);
+    if (!existingItem) return;
+
+    // 更新本地状态
+    setCards((prev) =>
+      prev.map((card) => {
+        if (card.id === cardId) {
+          return {
+            ...card,
+            items: (card.items || []).map((item) =>
+              item.id === itemId ? { ...item, ...updates, updated_at: Date.now() } : item
+            ),
+          };
+        }
+        return card;
+      })
+    );
+
+    if (useLocalData) {
+      // 使用本地数据
+      // 检查是否需要保存到本地
+      if (!existingItem.content && updates.content) {
+        // 新建的 item，需要调用 add-item
+        const newItem = {
+          ...existingItem,
+          ...updates,
+          updatedAt: Date.now(),
+        };
+        await window.api.invoke('todo:add-item', cardId, newItem);
+      } else if (existingItem.content) {
+        // 已存在的 item，调用 update-item
+        await window.api.invoke('todo:update-item', cardId, itemId, updates);
+      }
+
+      // 刷新数据
+      const list = (await window.api.invoke('todo:get-all')) as TodoCardType[];
+      setCards(list || []);
+    } else {
+      // 使用在线数据
+      try {
+        if (!existingItem.content && updates.content) {
+          // 新建的 item
+          await createTodoItem({
+            id: itemId,
+            card_id: cardId,
+            content: updates.content || '',
+            completed: updates.completed,
+          });
+        } else if (existingItem.content) {
+          // 已存在的 item
+          await updateTodoItem(itemId, cardId, {
+            content: updates.content,
+            completed: updates.completed,
+          });
+        }
+        await loadCards();
+      } catch (error) {
+        console.error('更新待办项失败:', error);
+      }
+    }
+  };
+
+  const handleDeleteItem = async (cardId: string, itemId: string) => {
+    const existingCard = cards.find((c) => c.id === cardId);
+    if (!existingCard) return;
+
+    const existingItem = existingCard.items?.find((i) => i.id === itemId);
+    if (!existingItem) return;
+
+    // 更新本地状态
+    setCards((prev) =>
+      prev.map((card) => {
+        if (card.id === cardId) {
+          return {
+            ...card,
+            items: (card.items || []).filter((item) => item.id !== itemId),
+          };
+        }
+        return card;
+      })
+    );
+
+    if (useLocalData) {
+      // 使用本地数据
+      // 如果 item 有内容（已保存到本地），需要调用本地删除
+      if (existingItem.content) {
+        await window.api.invoke('todo:delete-item', cardId, itemId);
+      }
+    } else {
+      // 使用在线数据
+      // 如果 item 有内容（已保存到服务器），需要调用服务器删除
+      if (existingItem.content) {
+        try {
+          await deleteTodoItem(itemId, cardId);
+          await loadCards();
+        } catch (error) {
+          console.error('删除待办项失败:', error);
+        }
+      }
+    }
   };
 
   const sortedCards = [...cards].sort((a, b) => {
@@ -85,112 +342,18 @@ export function TodoListPanel() {
       }
     }
     // 按创建时间倒序
-    return b.createdAt - a.createdAt;
+    return (b.created_at || 0) - (a.created_at || 0);
   });
 
-  const handleUpdateCard = async (cardId: string, updates: Partial<Omit<TodoCardType, 'id'>>) => {
-    // 直接调用 updateCard
-    await window.api.invoke('todo:update-card', cardId, updates);
-    const list = (await window.api.invoke('todo:get-all')) as TodoCardType[];
-    setCards(list || []);
-  };
-
-  const handleDeleteCard = async (cardId: string) => {
-    await window.api.invoke('todo:delete-card', cardId);
-    setCards((prev) => prev.filter((card) => card.id !== cardId));
-  };
-
-  const handleAddItem = async (cardId: string, item: TodoItem) => {
-    const existingCard = cards.find((c) => c.id === cardId);
-    if (existingCard) {
-      // 先更新本地状态
-      setCards((prev) =>
-        prev.map((card) =>
-          card.id === cardId ? { ...card, items: [item, ...card.items] } : card
-        )
-      );
-
-      // 如果卡片还没有保存到后端，先保存卡片
-      if (!existingCard.name) {
-        // 卡片还没保存，暂时不保存 item，等卡片保存后再保存 item
-        return;
-      }
-
-      // 如果 item 有内容，保存到后端
-      if (item.content) {
-        await window.api.invoke('todo:add-item', cardId, item);
-      } else {
-        // 空 item，只保留在本地，等有内容后再保存
-      }
-    }
-  };
-
-  const handleUpdateItem = async (cardId: string, itemId: string, updates: Partial<Omit<TodoItem, 'id'>>) => {
-    const existingCard = cards.find((c) => c.id === cardId);
-    if (!existingCard) return;
-
-    const existingItem = existingCard.items.find((i) => i.id === itemId);
-    if (!existingItem) return;
-
-    // 更新本地状态
-    setCards((prev) =>
-      prev.map((card) => {
-        if (card.id === cardId) {
-          return {
-            ...card,
-            items: card.items.map((item) =>
-              item.id === itemId ? { ...item, ...updates } : item
-            ),
-          };
-        }
-        return card;
-      })
+  if (loading) {
+    return (
+      <section className="flex flex-col h-full">
+        <div className="flex items-center justify-center h-full">
+          <div className="text-slate-500">加载中...</div>
+        </div>
+      </section>
     );
-
-    // 检查是否需要保存到后端
-    if (!existingItem.content && updates.content) {
-      // 新建的 item，需要调用 add-item
-      const newItem: TodoItem = {
-        ...existingItem,
-        ...updates,
-        updatedAt: Date.now(),
-      };
-      await window.api.invoke('todo:add-item', cardId, newItem);
-    } else if (existingItem.content) {
-      // 已存在的 item，调用 update-item
-      await window.api.invoke('todo:update-item', cardId, itemId, updates);
-    }
-
-    // 刷新数据
-    const list = (await window.api.invoke('todo:get-all')) as TodoCardType[];
-    setCards(list || []);
-  };
-
-  const handleDeleteItem = async (cardId: string, itemId: string) => {
-    const existingCard = cards.find((c) => c.id === cardId);
-    if (!existingCard) return;
-
-    const existingItem = existingCard.items.find((i) => i.id === itemId);
-    if (!existingItem) return;
-
-    // 更新本地状态
-    setCards((prev) =>
-      prev.map((card) => {
-        if (card.id === cardId) {
-          return {
-            ...card,
-            items: card.items.filter((item) => item.id !== itemId),
-          };
-        }
-        return card;
-      })
-    );
-
-    // 如果 item 有内容（已保存到后端），需要调用后端删除
-    if (existingItem.content) {
-      await window.api.invoke('todo:delete-item', cardId, itemId);
-    }
-  };
+  }
 
   return (
     <section className="flex flex-col h-full">
@@ -238,6 +401,7 @@ export function TodoListPanel() {
                     <TodoCard
                       key={card.id}
                       card={card}
+                      isOnlineData={!useLocalData}
                       onUpdateCard={(updates) => handleUpdateCard(card.id, updates)}
                       onDeleteCard={() => handleDeleteCard(card.id)}
                       onAddItem={(item) => handleAddItem(card.id, item)}
@@ -257,6 +421,7 @@ export function TodoListPanel() {
                     <TodoCard
                       key={card.id}
                       card={card}
+                      isOnlineData={!useLocalData}
                       onUpdateCard={(updates) => handleUpdateCard(card.id, updates)}
                       onDeleteCard={() => handleDeleteCard(card.id)}
                       onAddItem={(item) => handleAddItem(card.id, item)}

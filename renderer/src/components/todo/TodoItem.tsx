@@ -4,8 +4,12 @@ type TodoItem = {
   id: string;
   content: string;
   completed: boolean;
-  createdAt: number;
-  updatedAt: number;
+  createdAt?: number;
+  updatedAt?: number;
+  created_at?: number;
+  updated_at?: number;
+  card_id?: string;
+  deleted?: boolean;
 };
 
 interface TodoItemProps {
