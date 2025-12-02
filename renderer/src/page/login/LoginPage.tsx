@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
 import { showToast } from '../../components/toast/Toast';
 import { login, register, guestLogin, sendVerificationCode, loginByCode } from '../../api/auth';
+import { getAppSetting } from '../../api/appSetting';
 import { defaultRoute } from '../../router';
 import {
   getLatestLoginHistory,
@@ -28,7 +29,7 @@ export function LoginPage() {
   const [usernameSuggestions, setUsernameSuggestions] = useState<string[]>([]);
   const [emailSuggestions, setEmailSuggestions] = useState<string[]>([]);
 
-  const { setUser, setToken, setShortcuts } = useAppStore();
+  const { setUser, setToken, setShortcuts, setAppConfig } = useAppStore();
 
   // 页面加载时自动填充上一次的登录信息
   useEffect(() => {
@@ -116,6 +117,26 @@ export function LoginPage() {
         localStorage.setItem('xtool_token', response.token);
         localStorage.setItem('xtool_user', JSON.stringify(response.user));
         localStorage.setItem('xtool_shortcuts', JSON.stringify(response.shortcuts || {}));
+        
+        // 加载应用配置
+        try {
+          const appSettingResponse = await getAppSetting();
+          if (appSettingResponse.success && appSettingResponse.config) {
+            setAppConfig(appSettingResponse.config);
+            localStorage.setItem('xtool_appConfig', JSON.stringify(appSettingResponse.config));
+          } else {
+            // 使用默认配置
+            const defaultConfig = { use_local_data: true };
+            setAppConfig(defaultConfig);
+            localStorage.setItem('xtool_appConfig', JSON.stringify(defaultConfig));
+          }
+        } catch (error) {
+          console.error('加载应用配置失败:', error);
+          const defaultConfig = { use_local_data: true };
+          setAppConfig(defaultConfig);
+          localStorage.setItem('xtool_appConfig', JSON.stringify(defaultConfig));
+        }
+        
         showToast('登录成功');
         
         // 应用快捷键配置（包括默认快捷键）
@@ -167,6 +188,25 @@ export function LoginPage() {
         localStorage.setItem('xtool_user', JSON.stringify(response.user));
         localStorage.setItem('xtool_shortcuts', JSON.stringify(response.shortcuts || {}));
         
+        // 加载应用配置
+        try {
+          const appSettingResponse = await getAppSetting();
+          if (appSettingResponse.success && appSettingResponse.config) {
+            setAppConfig(appSettingResponse.config);
+            localStorage.setItem('xtool_appConfig', JSON.stringify(appSettingResponse.config));
+          } else {
+            // 使用默认配置
+            const defaultConfig = { use_local_data: true };
+            setAppConfig(defaultConfig);
+            localStorage.setItem('xtool_appConfig', JSON.stringify(defaultConfig));
+          }
+        } catch (error) {
+          console.error('加载应用配置失败:', error);
+          const defaultConfig = { use_local_data: true };
+          setAppConfig(defaultConfig);
+          localStorage.setItem('xtool_appConfig', JSON.stringify(defaultConfig));
+        }
+        
         // 保存注册历史
         saveLoginHistory({
           username,
@@ -214,6 +254,26 @@ export function LoginPage() {
         localStorage.setItem('xtool_token', response.token);
         localStorage.setItem('xtool_user', JSON.stringify(response.user));
         localStorage.setItem('xtool_shortcuts', JSON.stringify(response.shortcuts || {}));
+        
+        // 加载应用配置
+        try {
+          const appSettingResponse = await getAppSetting();
+          if (appSettingResponse.success && appSettingResponse.config) {
+            setAppConfig(appSettingResponse.config);
+            localStorage.setItem('xtool_appConfig', JSON.stringify(appSettingResponse.config));
+          } else {
+            // 使用默认配置
+            const defaultConfig = { use_local_data: true };
+            setAppConfig(defaultConfig);
+            localStorage.setItem('xtool_appConfig', JSON.stringify(defaultConfig));
+          }
+        } catch (error) {
+          console.error('加载应用配置失败:', error);
+          const defaultConfig = { use_local_data: true };
+          setAppConfig(defaultConfig);
+          localStorage.setItem('xtool_appConfig', JSON.stringify(defaultConfig));
+        }
+        
         showToast('路人身份登录成功');
         
         // 应用快捷键配置（包括默认快捷键）
@@ -300,6 +360,25 @@ export function LoginPage() {
         localStorage.setItem('xtool_token', response.token);
         localStorage.setItem('xtool_user', JSON.stringify(response.user));
         localStorage.setItem('xtool_shortcuts', JSON.stringify(response.shortcuts || {}));
+        
+        // 加载应用配置
+        try {
+          const appSettingResponse = await getAppSetting();
+          if (appSettingResponse.success && appSettingResponse.config) {
+            setAppConfig(appSettingResponse.config);
+            localStorage.setItem('xtool_appConfig', JSON.stringify(appSettingResponse.config));
+          } else {
+            // 使用默认配置
+            const defaultConfig = { use_local_data: true };
+            setAppConfig(defaultConfig);
+            localStorage.setItem('xtool_appConfig', JSON.stringify(defaultConfig));
+          }
+        } catch (error) {
+          console.error('加载应用配置失败:', error);
+          const defaultConfig = { use_local_data: true };
+          setAppConfig(defaultConfig);
+          localStorage.setItem('xtool_appConfig', JSON.stringify(defaultConfig));
+        }
         
         // 保存验证码登录历史（不保存验证码）
         saveLoginHistory({

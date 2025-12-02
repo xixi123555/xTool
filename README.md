@@ -70,8 +70,21 @@ yarn dist
 │  │  ├─ components/
 │  │  ├─ hooks/
 │  │  ├─ store/
+│  │  ├─ page/
+│  │  │  ├─ app-setting/  # 应用配置页面
+│  │  │  └─ ...
 │  │  └─ App.tsx
 │  └─ dist/               # 渲染端打包产物
+├─ server/                # 后端服务（Express + MySQL）
+│  ├─ src/
+│  │  ├─ models/          # 数据模型
+│  │  │  ├─ AppSetting.ts # 应用配置模型
+│  │  │  └─ ...
+│  │  ├─ routes/          # 路由
+│  │  │  ├─ appSetting.ts # 应用配置路由
+│  │  │  └─ ...
+│  │  └─ config/          # 数据库配置
+│  └─ ...
 ├─ packages/shared/       # 主/渲染进程共享的类型定义与工具
 ├─ resources/             # electron-builder 需要的图标等静态资源
 ├─ electron-builder.yml   # 打包配置
@@ -125,6 +138,20 @@ yarn dist
 
 - 如果 TypeScript 提示找不到 `electron` 类型，确认 `electron/tsconfig.json` 中的 `baseUrl` 为 `./src`
 - 若遇到 `ERR_REQUIRE_ESM`，说明在 CommonJS 环境下引入了 ESM-only 包，按照 `electron/src/clipboard/store.ts` 示例改用动态导入
+
+---
+
+## 功能特性
+
+### 应用配置
+
+用户可以在设置页面的"应用配置"标签页中管理应用的各项配置：
+
+- **数据源设置**：选择使用本地数据还是在线数据
+  - 使用本地数据（默认）：数据存储在本地，不进行云端同步
+  - 使用在线数据：数据同步到服务器，可在多设备间共享
+
+应用配置会保存在数据库中（`appsetting` 表），每个用户拥有独立的配置。配置信息也会缓存在前端的 Zustand Store 中，方便快速读取。
 
 ---
 

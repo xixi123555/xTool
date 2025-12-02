@@ -39,6 +39,15 @@ export interface Shortcut {
   updated_at?: Date;
 }
 
+// 应用配置接口
+export interface AppSetting {
+  id: number;
+  user_id: number;
+  use_local_data: boolean;
+  created_at?: Date;
+  updated_at?: Date;
+}
+
 // JWT Payload
 export interface JWTPayload {
   userId: number;

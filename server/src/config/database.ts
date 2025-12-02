@@ -112,6 +112,20 @@ export async function initDatabase(): Promise<void> {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     `);
 
+    // 创建应用配置表
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS appsetting (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        use_local_data BOOLEAN DEFAULT TRUE COMMENT '是否使用本地数据，默认使用本地数据',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        UNIQUE KEY uk_user_id (user_id),
+        INDEX idx_user_id (user_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
     console.log('数据库表初始化成功');
   } catch (error) {
     console.error('数据库初始化失败:', error);

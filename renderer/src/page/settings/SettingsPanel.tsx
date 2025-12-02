@@ -2,14 +2,16 @@ import { useState } from 'react';
 import { AiAuthPanel } from '../ai-auth/AiAuthPanel';
 import { ShortcutsPanel } from '../shortcuts/ShortcutsPanel';
 import { ProfilePanel } from '../profile/ProfilePanel';
+import { AppSettingPanel } from '../app-setting/AppSettingPanel';
 import { useAppStore } from '../../store/useAppStore';
 
-type TabId = 'profile' | 'aiAuth' | 'shortcuts';
+type TabId = 'profile' | 'aiAuth' | 'shortcuts' | 'appSetting';
 
 const TABS: Array<{ id: TabId; label: string; showForGuest?: boolean }> = [
   { id: 'profile', label: '个人信息', showForGuest: false },
   { id: 'aiAuth', label: 'AI 鉴权管理', showForGuest: false },
   { id: 'shortcuts', label: '快捷键管理', showForGuest: false },
+  { id: 'appSetting', label: '应用配置', showForGuest: false },
 ];
 
 export function SettingsPanel({ onClose }: { onClose: () => void }) {
@@ -87,6 +89,11 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
         {activeTab === 'shortcuts' && (
           <div className="h-full overflow-hidden">
             <ShortcutsPanel />
+          </div>
+        )}
+        {activeTab === 'appSetting' && (
+          <div className="h-full overflow-hidden">
+            <AppSettingPanel />
           </div>
         )}
       </div>

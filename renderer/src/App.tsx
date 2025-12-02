@@ -15,7 +15,7 @@ import { showToast } from './components/toast/Toast';
 // 主应用内容组件（需要登录）
 function MainApp() {
   const navigate = useNavigate();
-  const { user, token, setUser, setToken, shortcuts, setShortcuts } = useAppStore();
+  const { user, token, setUser, setToken, shortcuts, setShortcuts, setAppConfig } = useAppStore();
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [draggables, setDraggables] = useState<Array<{ id: string; src: string }>>([]);
   const [editingImage, setEditingImage] = useState<string | null>(null);
@@ -26,6 +26,7 @@ function MainApp() {
     const savedToken = localStorage.getItem('xtool_token');
     const savedUser = localStorage.getItem('xtool_user');
     const savedShortcuts = localStorage.getItem('xtool_shortcuts');
+    const savedAppConfig = localStorage.getItem('xtool_appConfig');
     if (savedToken && savedUser) {
       setToken(savedToken);
       setUser(JSON.parse(savedUser));
@@ -46,8 +47,15 @@ function MainApp() {
           });
         }, 500);
       }
+      if (savedAppConfig) {
+        const parsedAppConfig = JSON.parse(savedAppConfig);
+        setAppConfig(parsedAppConfig);
+      } else {
+        // 使用默认配置
+        setAppConfig({ use_local_data: true });
+      }
     }
-  }, [setToken, setUser, setShortcuts]);
+  }, [setToken, setUser, setShortcuts, setAppConfig]);
 
   useIpcEvent('screenshot:trigger', () => setSelectorOpen(true));
 

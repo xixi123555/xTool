@@ -14,6 +14,10 @@ type Shortcuts = {
   [key: string]: string | undefined;
 };
 
+type AppConfig = {
+  use_local_data: boolean;
+};
+
 type AppState = {
   clipboardHistory: ClipboardItem[];
   addClipboardItem: (item: ClipboardItem) => void;
@@ -29,6 +33,9 @@ type AppState = {
   // 快捷键配置
   shortcuts: Shortcuts;
   setShortcuts: (shortcuts: Shortcuts) => void;
+  // 应用配置
+  appConfig: AppConfig;
+  setAppConfig: (config: AppConfig) => void;
 };
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -44,16 +51,23 @@ export const useAppStore = create<AppState>((set, get) => ({
   setUser: (user) => set({ user }),
   setToken: (token) => set({ token }),
   logout: () => {
-    set({ user: null, token: null, shortcuts: {} });
+    set({ user: null, token: null, shortcuts: {}, appConfig: { use_local_data: true } });
     localStorage.removeItem('xtool_token');
     localStorage.removeItem('xtool_user');
     localStorage.removeItem('xtool_shortcuts');
+    localStorage.removeItem('xtool_appConfig');
   },
   // 快捷键配置
   shortcuts: {},
   setShortcuts: (shortcuts) => {
     set({ shortcuts });
     localStorage.setItem('xtool_shortcuts', JSON.stringify(shortcuts));
+  },
+  // 应用配置
+  appConfig: { use_local_data: true },
+  setAppConfig: (config) => {
+    set({ appConfig: config });
+    localStorage.setItem('xtool_appConfig', JSON.stringify(config));
   },
   // 检查权限：路人用户不能使用翻译和网页阅读器
   canUseFeature: (feature) => {

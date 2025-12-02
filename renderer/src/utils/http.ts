@@ -5,7 +5,8 @@ import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } f
 
 // 创建 axios 实例
 const httpClient: AxiosInstance = axios.create({
-  baseURL: 'http://39.105.137.213:5198/api', // API 基础 URL
+  // baseURL: 'http://39.105.137.213:5198/api', // API 基础 URL
+  baseURL: 'http://localhost:5198/api', // API 基础 URL
   timeout: 30000, // 30秒超时
   headers: {
     'Content-Type': 'application/json',
