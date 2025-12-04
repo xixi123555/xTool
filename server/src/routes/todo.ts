@@ -47,15 +47,22 @@ interface CreateCardRequest extends AuthenticatedRequest {
 router.post('/cards', async (req: Request, res: Response) => {
   const typedReq = req as unknown as CreateCardRequest;
   try {
-    const { id, name, starred, tags } = typedReq.body;
+    let { id, name, starred, tags } = typedReq.body;
+    tags = tags ? tags.join(',') : '';
     const userId = typedReq.user.id;
 
     if (!id || !name) {
       res.status(400).json({ error: 'id 和 name 不能为空' });
       return;
     }
-
-    await Todo.createCard(userId, { id, name, starred, tags });
+    // 卡片id存在则更新，不存在则创建
+    const card = await Todo.getCardById(id);
+    console.log('card', card);
+    if (card) {
+      await Todo.updateCard(id, userId, { name, starred, tags });
+    } else {
+      await Todo.createCard(userId, { id, name, starred, tags });
+    }
 
     res.json({
       success: true,

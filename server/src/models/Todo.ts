@@ -2,7 +2,7 @@
  * 待办事项模型
  */
 import pool from '../config/database.js';
-import { TodoCard, TodoItem } from '../types/index.js';
+import { TodoCard } from '../types/index.js';
 
 export class Todo {
   /**
@@ -32,7 +32,7 @@ export class Todo {
         user_id: card.user_id,
         name: card.name,
         starred: Boolean(card.starred),
-        tags: card.tags ? JSON.parse(card.tags) : [],
+        tags: (card.tags || '').split(','),
         deleted: Boolean(card.deleted),
         created_at: card.created_at,
         updated_at: card.updated_at,
@@ -54,7 +54,7 @@ export class Todo {
   /**
    * 创建待办卡片
    */
-  static async createCard(userId: number, card: { id: string; name: string; starred?: boolean; tags?: string[] }): Promise<void> {
+  static async createCard(userId: number, card: { id: string; name: string; starred?: boolean; tags?: string }): Promise<void> {
     await pool.execute(
       `INSERT INTO todo_cards (id, user_id, name, starred, tags, deleted, created_at, updated_at) 
        VALUES (?, ?, ?, ?, ?, FALSE, ?, ?)`,
@@ -63,7 +63,7 @@ export class Todo {
         userId,
         card.name,
         card.starred || false,
-        JSON.stringify(card.tags || []),
+        card.tags,
         Date.now(),
         Date.now(),
       ]
@@ -73,7 +73,7 @@ export class Todo {
   /**
    * 更新待办卡片
    */
-  static async updateCard(cardId: string, userId: number, updates: { name?: string; starred?: boolean; tags?: string[] }): Promise<void> {
+  static async updateCard(cardId: string, userId: number, updates: { name?: string; starred?: boolean; tags?: string }): Promise<void> {
     const fields: string[] = [];
     const values: any[] = [];
 
@@ -87,7 +87,7 @@ export class Todo {
     }
     if (updates.tags !== undefined) {
       fields.push('tags = ?');
-      values.push(JSON.stringify(updates.tags));
+      values.push(updates.tags);
     }
 
     if (fields.length === 0) {
@@ -103,7 +103,50 @@ export class Todo {
       values
     );
   }
+  /**
+   * 获取待办卡片
+   */
+  static async getCardById(cardId: string): Promise<TodoCard | null> {
+    const [cards] = await pool.execute(
+      `SELECT id, user_id, name, starred, tags, deleted, created_at, updated_at FROM todo_cards WHERE id = ? AND deleted = FALSE`,
+      [cardId]
+    ) as [any[], any];
 
+    if (cards.length === 0) {
+      return null;
+    }
+
+    const card = cards[0];
+    console.log('card111', card);
+    // 查询该卡片下的所有项
+    const [items] = await pool.execute(
+      `SELECT id, card_id, content, completed, deleted, created_at, updated_at 
+       FROM todo_items 
+       WHERE card_id = ? AND deleted = FALSE 
+       ORDER BY created_at ASC`,
+      [card.id]
+    ) as [any[], any];
+
+    return {
+      id: card.id,
+      user_id: card.user_id,
+      name: card.name,
+      starred: Boolean(card.starred),
+      tags: card.tags ? card.tags.split(',') : [],
+      deleted: Boolean(card.deleted),
+      created_at: card.created_at,
+      updated_at: card.updated_at,
+      items: items.map((item: any) => ({
+        id: item.id,
+        card_id: item.card_id,
+        content: item.content,
+        completed: Boolean(item.completed),
+        deleted: Boolean(item.deleted),
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+      })),
+    };
+  }
   /**
    * 逻辑删除待办卡片
    */
@@ -120,22 +163,28 @@ export class Todo {
   }
 
   /**
-   * 创建待办项
-   */
-  static async createItem(item: { id: string; card_id: string; content: string; completed?: boolean }): Promise<void> {
-    await pool.execute(
-      `INSERT INTO todo_items (id, card_id, content, completed, deleted, created_at, updated_at) 
-       VALUES (?, ?, ?, ?, FALSE, ?, ?)`,
-      [
-        item.id,
-        item.card_id,
-        item.content,
-        item.completed || false,
-        Date.now(),
-        Date.now(),
-      ]
-    );
-  }
+ * 创建待办项（如果 ID 已存在则更新，支持恢复逻辑删除的记录）
+ */
+static async createItem(item: { id: string; card_id: string; content: string; completed?: boolean }): Promise<void> {
+  await pool.execute(
+    `INSERT INTO todo_items (id, card_id, content, completed, deleted, created_at, updated_at) 
+     VALUES (?, ?, ?, ?, FALSE, ?, ?)
+     ON DUPLICATE KEY UPDATE 
+       card_id = VALUES(card_id),
+       content = VALUES(content),
+       completed = VALUES(completed),
+       deleted = FALSE,
+       updated_at = VALUES(updated_at)`,
+    [
+      item.id,
+      item.card_id,
+      item.content,
+      item.completed || false,
+      Date.now(),
+      Date.now(),
+    ]
+  );
+}
 
   /**
    * 更新待办项
