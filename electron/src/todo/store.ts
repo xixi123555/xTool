@@ -16,6 +16,7 @@ export type TodoCard = {
   tags: string[];
   createdAt: number;
   updatedAt: number;
+  isOnlineData?: boolean; // 是否已同步到在线数据库
 };
 
 type TodoStoreSchema = {

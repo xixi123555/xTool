@@ -13,7 +13,7 @@ export function registerTodoIpcHandlers(mainWindow: BrowserWindow) {
       return card;
     });
   
-    ipcMain.handle('todo:update-card', async (_event, cardId: string, updates: { name?: string }) => {
+    ipcMain.handle('todo:update-card', async (_event, cardId: string, updates: { name?: string; starred?: boolean; tags?: string[]; isOnlineData?: boolean }) => {
       await todoStore.updateCard(cardId, updates);
       mainWindow?.webContents.send('todo:card-updated', { cardId });
       return { ok: true };

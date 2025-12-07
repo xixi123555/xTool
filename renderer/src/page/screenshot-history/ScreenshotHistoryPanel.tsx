@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useIpcEvent } from '../../hooks/useIpcEvent';
 import { ImagePreviewOverlay } from '../../components/image-preview/ImagePreviewOverlay';
 import { showToast } from '../../components/toast/Toast';
+import { CopyIcon } from '../../assets/icons';
 
 type ScreenshotItem = { id: string; hash: string; dataUrl: string; createdAt: number };
 
@@ -73,9 +74,7 @@ export function ScreenshotHistoryPanel() {
                     className="p-1 hover:bg-slate-100 rounded transition-colors"
                     title="复制到剪贴板"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
+                    <CopyIcon className="text-slate-600" />
                   </button>
                 </div>
           </div>

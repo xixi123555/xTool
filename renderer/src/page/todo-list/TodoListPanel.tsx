@@ -3,6 +3,8 @@ import { TodoCard } from '../../components/todo/TodoCard';
 import { useIpcEvent } from '../../hooks/useIpcEvent';
 import { useAppStore } from '../../store/useAppStore';
 import { getTodoCards, createTodoCard, updateTodoCard, deleteTodoCard, createTodoItem, updateTodoItem, deleteTodoItem, type TodoCard as ApiTodoCard, type TodoItem as ApiTodoItem } from '../../api/todo';
+import { confirm } from '../../components/confirm';
+import { StarIcon, PlusIcon } from '../../assets/icons';
 
 // 统一的类型定义（兼容本地和在线数据）
 type TodoItem = {
@@ -29,10 +31,11 @@ type TodoCardType = {
   updated_at?: number;
   user_id?: number;
   deleted?: boolean;
+  isOnlineData?: boolean; // 是否已同步到在线数据库（仅本地数据模式使用）
 };
 
 export function TodoListPanel() {
-  const { appConfig } = useAppStore();
+  const { appConfig, user } = useAppStore();
   const useLocalData = appConfig.use_local_data;
   const [cards, setCards] = useState<TodoCardType[]>([]);
   const [sortByStar, setSortByStar] = useState(true);
@@ -157,6 +160,30 @@ export function TodoListPanel() {
   const handleUpdateCard = async (cardId: string, updates: Partial<Omit<TodoCardType, 'id'>>) => {
     if (useLocalData) {
       // 使用本地数据
+      const cardToUpdate = cards.find((c) => c.id === cardId);
+      
+      // 如果卡片已同步到在线，也需要同步更新在线数据
+      if (cardToUpdate?.isOnlineData === true) {
+        // 检查用户是否登录
+        if (user && user.user_type !== 'guest') {
+          try {
+            const updateData: { name?: string; starred?: boolean; tags?: string[] } = {};
+            if (updates.name !== undefined) updateData.name = updates.name;
+            if (updates.starred !== undefined) updateData.starred = updates.starred;
+            if (updates.tags !== undefined) updateData.tags = updates.tags;
+            
+            // 只有有更新的字段时才调用 API
+            if (Object.keys(updateData).length > 0) {
+              await updateTodoCard(cardId, updateData);
+            }
+          } catch (error) {
+            console.error('同步更新在线卡片失败:', error);
+            // 在线更新失败不影响本地更新，继续执行
+          }
+        }
+      }
+      
+      // 更新本地数据
       await window.api.invoke('todo:update-card', cardId, updates);
       const list = (await window.api.invoke('todo:get-all')) as TodoCardType[];
       setCards(list || []);
@@ -177,14 +204,63 @@ export function TodoListPanel() {
   };
 
   const handleDeleteCard = async (cardId: string) => {
+    // 查找要删除的卡片，获取名称用于确认提示
+    const cardToDelete = cards.find((card) => card.id === cardId);
+    const cardName = cardToDelete?.name || '该卡片';
+    
+    // 构建确认提示信息
+    let confirmMessage = `确定要删除"${cardName}"吗？删除后无法恢复。`;
+    if (useLocalData && cardToDelete?.isOnlineData === true) {
+      confirmMessage += '\n\n该卡片已同步到在线数据库，删除时也会删除在线数据。';
+    }
+    
+    // 确认删除
+    const confirmed = await confirm({
+      title: '确认删除',
+      message: confirmMessage,
+      confirmText: '删除',
+      cancelText: '取消',
+      variant: 'danger',
+    });
+    
+    if (!confirmed) {
+      return;
+    }
+
     if (useLocalData) {
       // 使用本地数据
+      // 如果卡片已同步到在线，也删除在线数据
+      if (cardToDelete?.isOnlineData === true) {
+        // 检查用户是否登录
+        if (!user || user.user_type === 'guest') {
+          // 未登录时只删除本地数据
+          console.warn('用户未登录，只删除本地数据');
+        } else {
+          // 已登录时同时删除在线数据
+          try {
+            await deleteTodoCard(cardId);
+          } catch (error) {
+            console.error('删除在线卡片失败:', error);
+            // 在线删除失败不影响本地删除，继续执行
+          }
+        }
+      }
+      
+      // 删除本地数据
       await window.api.invoke('todo:delete-card', cardId);
       setCards((prev) => prev.filter((card) => card.id !== cardId));
     } else {
       // 使用在线数据
       try {
+        // 删除服务器上的卡片
         await deleteTodoCard(cardId);
+        // 同时删除本地存储中的对应卡片
+        try {
+          await window.api.invoke('todo:delete-card', cardId);
+        } catch (localError) {
+          // 本地删除失败不影响在线删除的成功，只记录错误
+          console.warn('删除本地卡片失败:', localError);
+        }
         await loadCards();
       } catch (error) {
         console.error('删除卡片失败:', error);
@@ -208,6 +284,24 @@ export function TodoListPanel() {
       // 如果 item 有内容，保存到本地
       if (item.content) {
         await window.api.invoke('todo:add-item', cardId, item);
+        
+        // 如果卡片已同步到在线，也需要同步添加事项到在线
+        if (existingCard.isOnlineData === true) {
+          // 检查用户是否登录
+          if (user && user.user_type !== 'guest') {
+            try {
+              await createTodoItem({
+                id: item.id,
+                card_id: cardId,
+                content: item.content,
+                completed: item.completed || false,
+              });
+            } catch (error) {
+              console.error('同步添加在线待办项失败:', error);
+              // 在线添加失败不影响本地添加，继续执行
+            }
+          }
+        }
       }
     } else {
       // 使用在线数据
@@ -261,9 +355,48 @@ export function TodoListPanel() {
           updatedAt: Date.now(),
         };
         await window.api.invoke('todo:add-item', cardId, newItem);
+        
+        // 如果卡片已同步到在线，也需要同步添加到在线
+        if (existingCard.isOnlineData === true) {
+          // 检查用户是否登录
+          if (user && user.user_type !== 'guest') {
+            try {
+              await createTodoItem({
+                id: itemId,
+                card_id: cardId,
+                content: updates.content || '',
+                completed: updates.completed,
+              });
+            } catch (error) {
+              console.error('同步添加在线待办项失败:', error);
+              // 在线添加失败不影响本地添加，继续执行
+            }
+          }
+        }
       } else if (existingItem.content) {
         // 已存在的 item，调用 update-item
         await window.api.invoke('todo:update-item', cardId, itemId, updates);
+        
+        // 如果卡片已同步到在线，也需要同步更新到在线
+        if (existingCard.isOnlineData === true) {
+          // 检查用户是否登录
+          if (user && user.user_type !== 'guest') {
+            try {
+              // 只传递有值的字段，避免传递 undefined
+              const onlineUpdates: { content?: string; completed?: boolean } = {};
+              if (updates.content !== undefined) onlineUpdates.content = updates.content;
+              if (updates.completed !== undefined) onlineUpdates.completed = updates.completed;
+              
+              // 只有有更新的字段时才调用 API
+              if (Object.keys(onlineUpdates).length > 0) {
+                await updateTodoItem(itemId, cardId, onlineUpdates);
+              }
+            } catch (error) {
+              console.error('同步更新在线待办项失败:', error);
+              // 在线更新失败不影响本地更新，继续执行
+            }
+          }
+        }
       }
 
       // 刷新数据
@@ -319,6 +452,19 @@ export function TodoListPanel() {
       // 如果 item 有内容（已保存到本地），需要调用本地删除
       if (existingItem.content) {
         await window.api.invoke('todo:delete-item', cardId, itemId);
+        
+        // 如果卡片已同步到在线，也需要同步删除在线事项
+        if (existingCard.isOnlineData === true) {
+          // 检查用户是否登录
+          if (user && user.user_type !== 'guest') {
+            try {
+              await deleteTodoItem(itemId, cardId);
+            } catch (error) {
+              console.error('同步删除在线待办项失败:', error);
+              // 在线删除失败不影响本地删除，继续执行
+            }
+          }
+        }
       }
     } else {
       // 使用在线数据
@@ -365,24 +511,14 @@ export function TodoListPanel() {
             className="p-1.5 hover:bg-slate-100 rounded transition-colors"
             title={sortByStar ? '按标星排序' : '按时间排序'}
           >
-            {sortByStar ? (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-amber-500 fill-current" viewBox="0 0 24 24">
-                <path d="M12 2.5L14.25 8.5L20.5 9.25L16 13.25L17.25 19.5L12 16.5L6.75 19.5L8 13.25L3.5 9.25L9.75 8.5L12 2.5Z" fillRule="evenodd" clipRule="evenodd" />
-              </svg>
-            ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400 fill-none stroke-current" viewBox="0 0 24 24" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-              </svg>
-            )}
+            <StarIcon filled={sortByStar} />
           </button>
         </div>
         <button
           onClick={handleAddCard}
           className="px-3 py-1.5 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors flex items-center gap-1.5"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
+          <PlusIcon />
           添加卡片
         </button>
       </div>
@@ -401,7 +537,7 @@ export function TodoListPanel() {
                     <TodoCard
                       key={card.id}
                       card={card}
-                      isOnlineData={!useLocalData}
+                      isLocalData={useLocalData}
                       onUpdateCard={(updates) => handleUpdateCard(card.id, updates)}
                       onDeleteCard={() => handleDeleteCard(card.id)}
                       onAddItem={(item) => handleAddItem(card.id, item)}
@@ -421,7 +557,7 @@ export function TodoListPanel() {
                     <TodoCard
                       key={card.id}
                       card={card}
-                      isOnlineData={!useLocalData}
+                      isLocalData={useLocalData}
                       onUpdateCard={(updates) => handleUpdateCard(card.id, updates)}
                       onDeleteCard={() => handleDeleteCard(card.id)}
                       onAddItem={(item) => handleAddItem(card.id, item)}

@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { showToast } from '../../components/toast/Toast';
 import { getAllAppKeys, saveAppKey, updateAppKey, deleteAppKey } from '../../api/appKey';
 import { useAppStore } from '../../store/useAppStore';
+import { confirm } from '../../components/confirm';
+import { DeleteIcon } from '../../assets/icons';
 
 interface AppKey {
   id: number;
@@ -197,7 +199,15 @@ export function AiAuthPanel() {
 
   // 删除
   const handleDelete = async (id: number) => {
-    if (!confirm('确定要删除这个 AppKey 吗？')) {
+    const confirmed = await confirm({
+      title: '确认删除',
+      message: '确定要删除这个 AppKey 吗？',
+      confirmText: '删除',
+      cancelText: '取消',
+      variant: 'danger',
+    });
+    
+    if (!confirmed) {
       return;
     }
 
@@ -406,20 +416,7 @@ export function AiAuthPanel() {
                     disabled={loading || isGuest}
                     title={isGuest ? '路人身份无法删除' : '删除'}
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                      />
-                    </svg>
+                    <DeleteIcon className="h-5 w-5" />
                   </button>
                 </div>
               </div>

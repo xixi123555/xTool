@@ -1,4 +1,12 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
+import {
+  ArrowLeftIcon,
+  RectangleIcon,
+  CircleIcon,
+  EditIcon,
+  BookmarkIcon,
+  CheckIcon,
+} from '../../assets/icons';
 
 type Tool = 'select' | 'rect' | 'ellipse' | 'text';
 
@@ -245,9 +253,7 @@ export function ScreenshotEditor({ imageSrc, onBack, onConfirm, onPin }: Screens
           className="p-2.5 text-slate-300 hover:text-white hover:bg-slate-700 rounded-lg transition-all duration-200 flex items-center justify-center"
           title="返回"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
+          <ArrowLeftIcon />
         </button>
         
         <div className="h-6 w-px bg-slate-600" />
@@ -262,9 +268,7 @@ export function ScreenshotEditor({ imageSrc, onBack, onConfirm, onPin }: Screens
             }`}
             title="矩形标记"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" />
-            </svg>
+            <RectangleIcon />
           </button>
           <button
             onClick={() => setTool('ellipse')}
@@ -275,9 +279,7 @@ export function ScreenshotEditor({ imageSrc, onBack, onConfirm, onPin }: Screens
             }`}
             title="椭圆标记"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            <CircleIcon />
           </button>
           <button
             onClick={() => setTool('text')}
@@ -288,9 +290,7 @@ export function ScreenshotEditor({ imageSrc, onBack, onConfirm, onPin }: Screens
             }`}
             title="添加文字"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
+            <EditIcon className="h-5 w-5" />
           </button>
         </div>
         
@@ -313,9 +313,7 @@ export function ScreenshotEditor({ imageSrc, onBack, onConfirm, onPin }: Screens
           className="p-2.5 text-slate-300 hover:text-white hover:bg-green-600 rounded-lg transition-all duration-200 flex items-center justify-center"
           title="固定到桌面"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-          </svg>
+          <BookmarkIcon />
         </button>
         
         <button
@@ -323,9 +321,7 @@ export function ScreenshotEditor({ imageSrc, onBack, onConfirm, onPin }: Screens
           className="p-2.5 text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-all duration-200 flex items-center justify-center shadow-md hover:shadow-lg"
           title="确认保存"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
+          <CheckIcon className="h-5 w-5" />
         </button>
       </div>
 

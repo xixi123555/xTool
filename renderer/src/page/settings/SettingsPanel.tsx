@@ -4,6 +4,7 @@ import { ShortcutsPanel } from '../shortcuts/ShortcutsPanel';
 import { ProfilePanel } from '../profile/ProfilePanel';
 import { AppSettingPanel } from '../app-setting/AppSettingPanel';
 import { useAppStore } from '../../store/useAppStore';
+import { CloseIcon } from '../../assets/icons';
 
 type TabId = 'profile' | 'aiAuth' | 'shortcuts' | 'appSetting';
 
@@ -38,20 +39,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
           className="text-slate-500 hover:text-slate-700 transition"
           onClick={onClose}
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
+          <CloseIcon />
         </button>
       </header>
 
