@@ -26,6 +26,7 @@ router.get('/', async (req: Request, res: Response) => {
       success: true,
       config: {
         use_local_data: setting.use_local_data,
+        theme: setting.theme || 'light',
       },
     });
   } catch (error) {
@@ -37,6 +38,7 @@ router.get('/', async (req: Request, res: Response) => {
 interface UpdateAppSettingRequest extends AuthenticatedRequest {
   body: {
     use_local_data: boolean;
+    theme?: 'light' | 'dark' | 'colorful';
   };
 }
 
@@ -46,7 +48,7 @@ interface UpdateAppSettingRequest extends AuthenticatedRequest {
 router.put('/', async (req: Request, res: Response) => {
   const typedReq = req as unknown as UpdateAppSettingRequest;
   try {
-    const { use_local_data } = typedReq.body;
+    const { use_local_data, theme } = typedReq.body;
     const userId = typedReq.user.id;
 
     if (typeof use_local_data !== 'boolean') {
@@ -54,13 +56,19 @@ router.put('/', async (req: Request, res: Response) => {
       return;
     }
 
-    await AppSetting.upsert(userId, { use_local_data });
+    if (theme && !['light', 'dark', 'colorful'].includes(theme)) {
+      res.status(400).json({ error: 'theme 必须是 light、dark 或 colorful' });
+      return;
+    }
+
+    await AppSetting.upsert(userId, { use_local_data, theme });
 
     res.json({
       success: true,
       message: '配置保存成功',
       config: {
         use_local_data,
+        theme: theme || 'light',
       },
     });
   } catch (error) {

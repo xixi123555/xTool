@@ -15,11 +15,26 @@ import { showToast } from './components/toast/Toast';
 // 主应用内容组件（需要登录）
 function MainApp() {
   const navigate = useNavigate();
-  const { user, token, setUser, setToken, shortcuts, setShortcuts, setAppConfig } = useAppStore();
+  const { user, token, setUser, setToken, shortcuts, setShortcuts, setAppConfig, appConfig } = useAppStore();
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [draggables, setDraggables] = useState<Array<{ id: string; src: string }>>([]);
   const [editingImage, setEditingImage] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // 应用主题到根元素
+  useEffect(() => {
+    const theme = appConfig.theme || 'light';
+    
+    // 移除所有主题类
+    document.documentElement.classList.remove('theme-light', 'theme-dark', 'theme-colorful');
+    document.body.classList.remove('theme-light', 'theme-dark', 'theme-colorful');
+    
+    // 添加新主题类（light 主题时不需要添加，使用默认变量）
+    if (theme !== 'light') {
+      document.documentElement.classList.add(`theme-${theme}`);
+      document.body.classList.add(`theme-${theme}`);
+    }
+  }, [appConfig.theme]);
 
   // 初始化时从 localStorage 恢复用户信息和快捷键配置
   useEffect(() => {
@@ -49,10 +64,22 @@ function MainApp() {
       }
       if (savedAppConfig) {
         const parsedAppConfig = JSON.parse(savedAppConfig);
-        setAppConfig(parsedAppConfig);
+        const configWithTheme = { ...parsedAppConfig, theme: parsedAppConfig.theme || 'light' };
+        setAppConfig(configWithTheme);
+        // 立即应用主题（不依赖 useEffect，因为此时 appConfig 可能还未更新）
+        const theme = configWithTheme.theme || 'light';
+        document.documentElement.classList.remove('theme-light', 'theme-dark', 'theme-colorful');
+        document.body.classList.remove('theme-light', 'theme-dark', 'theme-colorful');
+        if (theme !== 'light') {
+          document.documentElement.classList.add(`theme-${theme}`);
+          document.body.classList.add(`theme-${theme}`);
+        }
       } else {
         // 使用默认配置
-        setAppConfig({ use_local_data: true });
+        setAppConfig({ use_local_data: true, theme: 'light' });
+        // 确保默认主题应用（移除所有主题类，使用 :root 的默认变量）
+        document.documentElement.classList.remove('theme-light', 'theme-dark', 'theme-colorful');
+        document.body.classList.remove('theme-light', 'theme-dark', 'theme-colorful');
       }
     }
   }, [setToken, setUser, setShortcuts, setAppConfig]);

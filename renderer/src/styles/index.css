@@ -3,8 +3,129 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* Light 主题变量（默认） */
+    --theme-bg-primary: theme('colors.slate.50');
+    --theme-bg-secondary: theme('colors.white');
+    --theme-bg-tertiary: theme('colors.slate.100');
+    --theme-bg-card: rgba(255, 255, 255, 0.7);
+    --theme-bg-card-hover: theme('colors.slate.100');
+    --theme-bg-input: theme('colors.white');
+    --theme-bg-input-readonly: theme('colors.slate.50');
+    --theme-bg-sidebar: rgba(255, 255, 255, 0.8);
+    --theme-bg-nav-active: theme('colors.slate.900');
+    --theme-bg-nav-hover: theme('colors.slate.100');
+    --theme-bg-button-primary: theme('colors.slate.900');
+    --theme-bg-button-primary-hover: theme('colors.slate.700');
+    --theme-bg-button-primary-active: theme('colors.slate.800');
+    --theme-bg-button-secondary: theme('colors.white');
+    --theme-bg-button-secondary-hover: theme('colors.slate.100');
+    --theme-bg-button-secondary-active: theme('colors.slate.200');
+
+    --theme-text-primary: theme('colors.slate.900');
+    --theme-text-secondary: theme('colors.slate.800');
+    --theme-text-tertiary: theme('colors.slate.700');
+    --theme-text-quaternary: theme('colors.slate.600');
+    --theme-text-placeholder: theme('colors.slate.500');
+    --theme-text-muted: theme('colors.slate.400');
+    --theme-text-inverse: theme('colors.white');
+    --theme-text-button-secondary: theme('colors.slate.700');
+
+    --theme-border-primary: theme('colors.slate.200');
+    --theme-border-secondary: theme('colors.slate.300');
+    --theme-border-focus: theme('colors.slate.400');
+    --theme-border-nav: theme('colors.slate.200');
+
+    --theme-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --theme-shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+    --theme-gradient-bg: linear-gradient(to bottom right, theme('colors.slate.50'), theme('colors.slate.100'), theme('colors.white'));
+  }
+
+  /* Dark 主题变量 */
+  .theme-dark,
+  html.theme-dark {
+    --theme-bg-primary: theme('colors.slate.900');
+    --theme-bg-secondary: theme('colors.slate.800');
+    --theme-bg-tertiary: theme('colors.slate.800');
+    --theme-bg-card: rgba(30, 41, 59, 0.7);
+    --theme-bg-card-hover: theme('colors.slate.700');
+    --theme-bg-input: theme('colors.slate.800');
+    --theme-bg-input-readonly: theme('colors.slate.800');
+    --theme-bg-sidebar: rgba(30, 41, 59, 0.8);
+    --theme-bg-nav-active: theme('colors.slate.700');
+    --theme-bg-nav-hover: theme('colors.slate.700');
+    --theme-bg-button-primary: theme('colors.slate.700');
+    --theme-bg-button-primary-hover: theme('colors.slate.600');
+    --theme-bg-button-primary-active: theme('colors.slate.500');
+    --theme-bg-button-secondary: theme('colors.slate.800');
+    --theme-bg-button-secondary-hover: theme('colors.slate.700');
+    --theme-bg-button-secondary-active: theme('colors.slate.600');
+
+    --theme-text-primary: theme('colors.slate.100');
+    --theme-text-secondary: theme('colors.slate.200');
+    --theme-text-tertiary: theme('colors.slate.300');
+    --theme-text-quaternary: theme('colors.slate.400');
+    --theme-text-placeholder: theme('colors.slate.500');
+    --theme-text-muted: theme('colors.slate.400');
+    --theme-text-inverse: theme('colors.white');
+    --theme-text-button-secondary: theme('colors.slate.200');
+
+    --theme-border-primary: theme('colors.slate.700');
+    --theme-border-secondary: theme('colors.slate.600');
+    --theme-border-focus: theme('colors.slate.600');
+    --theme-border-nav: theme('colors.slate.700');
+
+    --theme-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    --theme-shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.3);
+
+    --theme-gradient-bg: linear-gradient(to bottom right, theme('colors.slate.900'), theme('colors.slate.800'), theme('colors.slate.900'));
+  }
+
+  /* Colorful 主题变量 */
+  .theme-colorful,
+  html.theme-colorful {
+    --theme-bg-primary: theme('colors.pink.50');
+    --theme-bg-secondary: rgba(255, 255, 255, 0.8);
+    --theme-bg-tertiary: linear-gradient(to bottom right, rgba(252, 231, 243, 0.5), rgba(243, 232, 255, 0.5), rgba(219, 234, 254, 0.5));
+    --theme-bg-card: rgba(255, 255, 255, 0.7);
+    --theme-bg-card-hover: linear-gradient(to right, theme('colors.pink.100'), theme('colors.purple.100'), theme('colors.blue.100'));
+    --theme-bg-input: theme('colors.white');
+    --theme-bg-input-readonly: theme('colors.slate.50');
+    --theme-bg-sidebar: rgba(255, 255, 255, 0.8);
+    --theme-bg-nav-active: linear-gradient(to right, theme('colors.pink.500'), theme('colors.purple.500'), theme('colors.blue.500'));
+    --theme-bg-nav-hover: linear-gradient(to right, theme('colors.pink.100'), theme('colors.purple.100'), theme('colors.blue.100'));
+    --theme-bg-button-primary: linear-gradient(to right, theme('colors.pink.500'), theme('colors.purple.500'), theme('colors.blue.500'));
+    --theme-bg-button-primary-hover: linear-gradient(to right, theme('colors.pink.600'), theme('colors.purple.600'), theme('colors.blue.600'));
+    --theme-bg-button-primary-active: linear-gradient(to right, theme('colors.pink.700'), theme('colors.purple.700'), theme('colors.blue.700'));
+    --theme-bg-button-secondary: rgba(255, 255, 255, 0.8);
+    --theme-bg-button-secondary-hover: linear-gradient(to right, theme('colors.pink.100'), theme('colors.purple.100'), theme('colors.blue.100'));
+    --theme-bg-button-secondary-active: linear-gradient(to right, theme('colors.pink.200'), theme('colors.purple.200'), theme('colors.blue.200'));
+
+    --theme-text-primary: theme('colors.purple.900');
+    --theme-text-secondary: theme('colors.purple.800');
+    --theme-text-tertiary: theme('colors.purple.700');
+    --theme-text-quaternary: theme('colors.purple.600');
+    --theme-text-placeholder: theme('colors.pink.600');
+    --theme-text-muted: theme('colors.pink.600');
+    --theme-text-inverse: theme('colors.white');
+    --theme-text-button-secondary: theme('colors.purple.800');
+
+    --theme-border-primary: theme('colors.purple.300');
+    --theme-border-secondary: theme('colors.purple.300');
+    --theme-border-focus: theme('colors.purple.400');
+    --theme-border-nav: theme('colors.purple.300');
+
+    --theme-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --theme-shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+    --theme-gradient-bg: linear-gradient(to bottom right, theme('colors.pink.50'), theme('colors.purple.50'), theme('colors.blue.50'));
+  }
+
   body {
     font-family: theme('fontFamily.sans');
+    background: var(--theme-bg-primary);
+    color: var(--theme-text-primary);
   }
   
   /* 截图模式下背景透明 */
@@ -17,13 +138,293 @@
   }
 }
 
+@layer utilities {
+  /* 使用 CSS 变量覆盖 Tailwind 类 */
+  .theme-dark .bg-white,
+  .theme-colorful .bg-white {
+    background-color: var(--theme-bg-secondary) !important;
+  }
+
+  .theme-dark .bg-slate-50,
+  .theme-dark .bg-slate-100 {
+    background-color: var(--theme-bg-tertiary) !important;
+  }
+
+  .theme-colorful .bg-slate-50,
+  .theme-colorful .bg-slate-100 {
+    background: var(--theme-bg-tertiary) !important;
+  }
+
+  .theme-dark .text-slate-900,
+  .theme-colorful .text-slate-900 {
+    color: var(--theme-text-primary) !important;
+  }
+
+  .theme-dark .text-slate-800,
+  .theme-colorful .text-slate-800 {
+    color: var(--theme-text-secondary) !important;
+  }
+
+  .theme-dark .text-slate-700,
+  .theme-colorful .text-slate-700 {
+    color: var(--theme-text-tertiary) !important;
+  }
+
+  .theme-dark .text-slate-600,
+  .theme-colorful .text-slate-600 {
+    color: var(--theme-text-quaternary) !important;
+  }
+
+  .theme-dark .text-slate-500,
+  .theme-colorful .text-slate-500 {
+    color: var(--theme-text-muted) !important;
+  }
+
+  .theme-dark .text-slate-400,
+  .theme-colorful .text-slate-400 {
+    color: var(--theme-text-muted) !important;
+  }
+
+  .theme-dark .border-slate-200,
+  .theme-dark .border-slate-300,
+  .theme-colorful .border-slate-200,
+  .theme-colorful .border-slate-300 {
+    border-color: var(--theme-border-primary) !important;
+  }
+
+  .theme-dark .hover\:bg-slate-50:hover,
+  .theme-dark .hover\:bg-slate-100:hover,
+  .theme-colorful .hover\:bg-slate-50:hover,
+  .theme-colorful .hover\:bg-slate-100:hover {
+    background: var(--theme-bg-card-hover) !important;
+  }
+
+  .theme-dark .bg-gradient-to-br,
+  .theme-colorful .bg-gradient-to-br {
+    background: var(--theme-gradient-bg) !important;
+  }
+
+  .theme-dark .from-slate-50,
+  .theme-dark .via-slate-100,
+  .theme-dark .to-white,
+  .theme-colorful .from-slate-50,
+  .theme-colorful .via-slate-100,
+  .theme-colorful .to-white {
+    background: var(--theme-gradient-bg) !important;
+  }
+
+  .theme-dark .bg-white\/80,
+  .theme-dark .bg-white\/90,
+  .theme-colorful .bg-white\/80,
+  .theme-colorful .bg-white\/90 {
+    background-color: var(--theme-bg-sidebar) !important;
+  }
+
+  .theme-dark aside,
+  .theme-colorful aside {
+    border-color: var(--theme-border-nav) !important;
+    background-color: var(--theme-bg-sidebar) !important;
+  }
+
+  .theme-dark nav a,
+  .theme-colorful nav a {
+    color: var(--theme-text-tertiary) !important;
+  }
+
+  .theme-dark nav a:hover,
+  .theme-colorful nav a:hover {
+    background: var(--theme-bg-nav-hover) !important;
+    color: var(--theme-text-secondary) !important;
+  }
+
+  .theme-dark nav a.bg-slate-900,
+  .theme-dark nav a[class*="bg-slate-900"],
+  .theme-colorful nav a.bg-slate-900,
+  .theme-colorful nav a[class*="bg-slate-900"] {
+    background: var(--theme-bg-nav-active) !important;
+  }
+
+  .theme-dark nav a.text-slate-700,
+  .theme-colorful nav a.text-slate-700 {
+    color: var(--theme-text-tertiary) !important;
+  }
+
+  .theme-dark nav a.hover\:bg-slate-100:hover,
+  .theme-colorful nav a.hover\:bg-slate-100:hover {
+    background: var(--theme-bg-nav-hover) !important;
+    color: var(--theme-text-secondary) !important;
+  }
+
+  .theme-dark nav a.bg-slate-900.text-white,
+  .theme-colorful nav a.bg-slate-900.text-white {
+    color: var(--theme-text-inverse) !important;
+  }
+
+  .theme-dark .border-t,
+  .theme-colorful .border-t {
+    border-color: var(--theme-border-nav) !important;
+  }
+
+  .theme-dark button.text-slate-500:hover,
+  .theme-colorful button.text-slate-500:hover {
+    color: var(--theme-text-secondary) !important;
+  }
+
+  .theme-dark .text-xs.text-slate-500,
+  .theme-colorful .text-xs.text-slate-500 {
+    color: var(--theme-text-muted) !important;
+  }
+
+  /* 通用卡片和容器样式 */
+  .theme-dark section,
+  .theme-colorful section {
+    border-color: var(--theme-border-primary) !important;
+  }
+
+  .theme-dark section.bg-white\/70,
+  .theme-dark section.bg-white\/80,
+  .theme-dark section.bg-white\/90,
+  .theme-colorful section.bg-white\/70,
+  .theme-colorful section.bg-white\/80,
+  .theme-colorful section.bg-white\/90 {
+    background-color: var(--theme-bg-card) !important;
+  }
+
+  /* 输入框和文本区域 */
+  .theme-dark textarea,
+  .theme-dark input[type="text"],
+  .theme-colorful textarea,
+  .theme-colorful input[type="text"] {
+    background-color: var(--theme-bg-input) !important;
+    border-color: var(--theme-border-primary) !important;
+    color: var(--theme-text-secondary) !important;
+  }
+
+  .theme-dark textarea::placeholder,
+  .theme-dark input[type="text"]::placeholder,
+  .theme-colorful textarea::placeholder,
+  .theme-colorful input[type="text"]::placeholder {
+    color: var(--theme-text-placeholder) !important;
+  }
+
+  .theme-dark textarea:focus,
+  .theme-dark input[type="text"]:focus,
+  .theme-colorful textarea:focus,
+  .theme-colorful input[type="text"]:focus {
+    border-color: var(--theme-border-focus) !important;
+    outline-color: var(--theme-border-focus) !important;
+  }
+
+  .theme-dark textarea.bg-slate-50,
+  .theme-dark div.bg-slate-50,
+  .theme-colorful textarea.bg-slate-50,
+  .theme-colorful div.bg-slate-50 {
+    background: var(--theme-bg-input-readonly) !important;
+  }
+
+  /* 列表项和卡片 */
+  .theme-dark li,
+  .theme-colorful li {
+    border-color: var(--theme-border-primary) !important;
+  }
+
+  .theme-dark li.hover\:bg-slate-100:hover,
+  .theme-colorful li.hover\:bg-slate-100:hover {
+    background: var(--theme-bg-card-hover) !important;
+  }
+
+  .theme-dark li.bg-slate-50,
+  .theme-colorful li.bg-slate-50 {
+    background: var(--theme-bg-card) !important;
+    border-color: var(--theme-border-secondary) !important;
+  }
+
+  .theme-dark li.border-dashed.border-slate-300,
+  .theme-colorful li.border-dashed.border-slate-300 {
+    border-color: var(--theme-border-secondary) !important;
+  }
+
+  /* 图片容器 */
+  .theme-dark div.bg-white,
+  .theme-colorful div.bg-white {
+    background-color: var(--theme-bg-secondary) !important;
+    border-color: var(--theme-border-primary) !important;
+  }
+
+  .theme-dark div.bg-white.shadow-sm,
+  .theme-colorful div.bg-white.shadow-sm {
+    box-shadow: var(--theme-shadow-sm) !important;
+  }
+
+  /* 错误消息 */
+  .theme-dark p.text-red-600,
+  .theme-colorful p.text-red-600 {
+    color: theme('colors.red.400') !important;
+  }
+
+  /* Focus ring */
+  .theme-dark .focus\:ring-slate-200:focus,
+  .theme-colorful .focus\:ring-slate-200:focus {
+    --tw-ring-color: var(--theme-border-focus) !important;
+  }
+
+  .theme-dark .shadow-sm,
+  .theme-colorful .shadow-sm {
+    box-shadow: var(--theme-shadow-sm) !important;
+  }
+
+  .theme-dark .shadow-soft,
+  .theme-colorful .shadow-soft {
+    box-shadow: var(--theme-shadow-soft) !important;
+  }
+
+  /* 确保placeholder颜色正确 */
+  .theme-dark .placeholder\:text-slate-400::placeholder,
+  .theme-colorful .placeholder\:text-slate-400::placeholder {
+    color: var(--theme-text-placeholder) !important;
+  }
+
+  /* Colorful 主题特殊样式 */
+  .theme-colorful .bg-slate-900 {
+    background: var(--theme-bg-button-primary) !important;
+  }
+
+  .theme-colorful .bg-slate-800 {
+    background: var(--theme-bg-button-secondary) !important;
+  }
+
+  .theme-colorful .bg-slate-700 {
+    background: linear-gradient(to right, theme('colors.pink.700'), theme('colors.purple.700'), theme('colors.blue.700')) !important;
+  }
+}
+
 @layer components {
   .btn-primary {
-    @apply rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 active:bg-slate-800;
+    @apply rounded-lg px-4 py-2 text-sm font-medium text-white transition;
+    background: var(--theme-bg-button-primary);
+  }
+
+  .btn-primary:hover {
+    background: var(--theme-bg-button-primary-hover);
+  }
+
+  .btn-primary:active {
+    background: var(--theme-bg-button-primary-active);
   }
 
   .btn-secondary {
-    @apply rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 active:bg-slate-200;
+    @apply rounded-lg border px-4 py-2 text-sm font-medium transition;
+    border-color: var(--theme-border-secondary);
+    background: var(--theme-bg-button-secondary);
+    color: var(--theme-text-button-secondary);
+  }
+
+  .btn-secondary:hover {
+    background: var(--theme-bg-button-secondary-hover);
+  }
+
+  .btn-secondary:active {
+    background: var(--theme-bg-button-secondary-active);
   }
 
   .todo-masonry {

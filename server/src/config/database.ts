@@ -126,6 +126,22 @@ export async function initDatabase(): Promise<void> {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     `);
 
+    // 如果表已存在，添加 theme 字段（如果不存在）
+    try {
+      await pool.execute(`
+        ALTER TABLE appsetting 
+        ADD COLUMN theme VARCHAR(20) DEFAULT 'light' COMMENT '主题配置：light(现有风格)、dark(暗色风格)、colorful(多彩风格)'
+        AFTER use_local_data
+      `);
+    } catch (error: any) {
+      // 如果字段已存在，忽略错误
+      if (error.message?.includes('Duplicate column name') || error.code === 'ER_DUP_FIELDNAME') {
+        console.log('theme 字段已存在，跳过添加');
+      } else {
+        console.warn('添加 theme 字段时出错:', error.message);
+      }
+    }
+
     // 创建待办事项卡片表
     await pool.execute(`
       CREATE TABLE IF NOT EXISTS todo_cards (

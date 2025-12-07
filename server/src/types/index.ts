@@ -44,6 +44,7 @@ export interface AppSetting {
   id: number;
   user_id: number;
   use_local_data: boolean;
+  theme?: 'light' | 'dark' | 'colorful'; // 主题配置：light(现有风格)、dark(暗色风格)、colorful(多彩风格)
   created_at?: Date;
   updated_at?: Date;
 }

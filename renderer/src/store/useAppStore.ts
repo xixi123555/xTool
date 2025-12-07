@@ -16,6 +16,7 @@ type Shortcuts = {
 
 type AppConfig = {
   use_local_data: boolean;
+  theme?: 'light' | 'dark' | 'colorful';
 };
 
 type AppState = {
@@ -51,7 +52,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   setUser: (user) => set({ user }),
   setToken: (token) => set({ token }),
   logout: () => {
-    set({ user: null, token: null, shortcuts: {}, appConfig: { use_local_data: true } });
+    set({ user: null, token: null, shortcuts: {}, appConfig: { use_local_data: true, theme: 'light' } });
     localStorage.removeItem('xtool_token');
     localStorage.removeItem('xtool_user');
     localStorage.removeItem('xtool_shortcuts');
@@ -64,7 +65,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     localStorage.setItem('xtool_shortcuts', JSON.stringify(shortcuts));
   },
   // 应用配置
-  appConfig: { use_local_data: true },
+  appConfig: { use_local_data: true, theme: 'light' },
   setAppConfig: (config) => {
     set({ appConfig: config });
     localStorage.setItem('xtool_appConfig', JSON.stringify(config));

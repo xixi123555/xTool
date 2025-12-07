@@ -5,6 +5,7 @@ import { get, put } from '../utils/http';
 
 export interface AppConfig {
   use_local_data: boolean;
+  theme?: 'light' | 'dark' | 'colorful';
 }
 
 export interface AppSettingResponse {

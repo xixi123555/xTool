@@ -9,8 +9,9 @@ export function AppSettingPanel() {
   // useOnlineData: true = 使用在线数据, false = 使用本地数据
   // Switch 关闭（false）= 使用本地数据（useLocalData = true）
   // Switch 开启（true）= 使用在线数据（useLocalData = false）
-  const [useLocalData, setUseLocalData] = useState(appConfig.use_local_data);
+  const [useLocalData, setUseLocalData] = useState<boolean>(appConfig.use_local_data ?? true);
   const useOnlineData = !useLocalData; // Switch 的状态：开启 = 使用在线数据
+  const [theme, setTheme] = useState<'light' | 'dark' | 'colorful'>(appConfig.theme || 'light');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -24,17 +25,21 @@ export function AppSettingPanel() {
       try {
         const response = await getAppSetting();
         if (response.success && response.config) {
-          setUseLocalData(response.config.use_local_data);
-          setAppConfig(response.config);
+          const useLocal = response.config.use_local_data ?? true;
+          setUseLocalData(useLocal);
+          setTheme(response.config.theme || 'light');
+          setAppConfig({ use_local_data: useLocal, theme: response.config.theme || 'light' });
         } else {
           // 如果获取失败，使用默认值
           setUseLocalData(true);
-          setAppConfig({ use_local_data: true });
+          setTheme('light');
+          setAppConfig({ use_local_data: true, theme: 'light' });
         }
       } catch (error) {
         console.error('加载应用配置失败:', error);
         setUseLocalData(true);
-        setAppConfig({ use_local_data: true });
+        setTheme('light');
+        setAppConfig({ use_local_data: true, theme: 'light' });
       } finally {
         setLoading(false);
       }
@@ -51,9 +56,11 @@ export function AppSettingPanel() {
     setMessage(null);
 
     try {
-      const response = await updateAppSetting({ use_local_data: useLocalData });
+      // 确保 useLocalData 是布尔值
+      const useLocal = Boolean(useLocalData);
+      const response = await updateAppSetting({ use_local_data: useLocal, theme });
       if (response.success) {
-        setAppConfig({ use_local_data: useLocalData });
+        setAppConfig({ use_local_data: useLocal, theme });
         setMessage({ type: 'success', text: '配置保存成功' });
         setTimeout(() => setMessage(null), 3000);
       } else {
@@ -105,6 +112,65 @@ export function AppSettingPanel() {
           </div>
         </div>
 
+        {/* 主题配置 */}
+        <div className="bg-white border border-slate-200 rounded-lg p-6">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <h4 className="text-base font-medium text-slate-900 mb-1">主题设置</h4>
+              <p className="text-sm text-slate-500 mb-4">
+                选择应用的主题风格。Light 为浅色风格，Dark 为暗色风格，Colorful 为多彩风格。
+              </p>
+              <div className="grid grid-cols-3 gap-4">
+                <button
+                  onClick={() => setTheme('light')}
+                  className={`p-4 rounded-lg border-2 transition-all ${
+                    theme === 'light'
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-slate-200 hover:border-slate-300 bg-white'
+                  }`}
+                >
+                  <div className="text-sm font-medium text-slate-900 mb-2">Light</div>
+                  <div className="flex gap-1">
+                    <div className="w-4 h-4 bg-slate-100 rounded"></div>
+                    <div className="w-4 h-4 bg-slate-200 rounded"></div>
+                    <div className="w-4 h-4 bg-slate-300 rounded"></div>
+                  </div>
+                </button>
+                <button
+                  onClick={() => setTheme('dark')}
+                  className={`p-4 rounded-lg border-2 transition-all ${
+                    theme === 'dark'
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-slate-200 hover:border-slate-300 bg-white'
+                  }`}
+                >
+                  <div className="text-sm font-medium text-slate-900 mb-2">Dark</div>
+                  <div className="flex gap-1">
+                    <div className="w-4 h-4 bg-slate-700 rounded"></div>
+                    <div className="w-4 h-4 bg-slate-800 rounded"></div>
+                    <div className="w-4 h-4 bg-slate-900 rounded"></div>
+                  </div>
+                </button>
+                <button
+                  onClick={() => setTheme('colorful')}
+                  className={`p-4 rounded-lg border-2 transition-all ${
+                    theme === 'colorful'
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-slate-200 hover:border-slate-300 bg-white'
+                  }`}
+                >
+                  <div className="text-sm font-medium text-slate-900 mb-2">Colorful</div>
+                  <div className="flex gap-1">
+                    <div className="w-4 h-4 bg-pink-400 rounded"></div>
+                    <div className="w-4 h-4 bg-purple-400 rounded"></div>
+                    <div className="w-4 h-4 bg-blue-400 rounded"></div>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* 提示消息 */}
         {message && (
           <div
@@ -122,9 +188,9 @@ export function AppSettingPanel() {
         <div className="flex justify-end">
           <button
             onClick={handleSave}
-            disabled={saving || useLocalData === appConfig.use_local_data}
+            disabled={saving || (Boolean(useLocalData) === Boolean(appConfig.use_local_data ?? true) && theme === (appConfig.theme || 'light'))}
             className={`px-6 py-2 rounded-lg font-medium transition ${
-              saving || useLocalData === appConfig.use_local_data
+              saving || (Boolean(useLocalData) === Boolean(appConfig.use_local_data ?? true) && theme === (appConfig.theme || 'light'))
                 ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
                 : 'bg-slate-900 text-white hover:bg-slate-800'
             }`}
