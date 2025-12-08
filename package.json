@@ -14,7 +14,8 @@
     "build": "yarn workspace devtools-suite-renderer build && yarn workspace devtools-suite-electron build",
     "postinstall": "electron-builder install-app-deps",
     "dist": "yarn build && electron-builder --config electron-builder.yml",
-    "lint": "eslint \"electron/src/**/*.ts\" \"renderer/src/**/*.{ts,tsx}\""
+    "lint": "eslint \"electron/src/**/*.ts\" \"renderer/src/**/*.{ts,tsx}\"",
+    "start:server": "cd server && yarn start"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
