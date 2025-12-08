@@ -15,7 +15,7 @@
     "postinstall": "electron-builder install-app-deps",
     "dist": "yarn build && electron-builder --config electron-builder.yml",
     "lint": "eslint \"electron/src/**/*.ts\" \"renderer/src/**/*.{ts,tsx}\"",
-    "start:server": "cd server && yarn start"
+    "start:server": "cd server && yarn build && yarn start"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",

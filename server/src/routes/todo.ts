@@ -47,8 +47,8 @@ interface CreateCardRequest extends AuthenticatedRequest {
 router.post('/cards', async (req: Request, res: Response) => {
   const typedReq = req as unknown as CreateCardRequest;
   try {
-    let { id, name, starred, tags } = typedReq.body;
-    tags = tags ? tags.join(',') : '';
+    const { id, name, starred, tags: tagsArray } = typedReq.body;
+    const tags = tagsArray ? tagsArray.join(',') : '';
     const userId = typedReq.user.id;
 
     if (!id || !name) {
@@ -92,7 +92,8 @@ router.put('/cards/:cardId', async (req: Request, res: Response) => {
   const typedReq = req as unknown as UpdateCardRequest;
   try {
     const { cardId } = typedReq.params;
-    const { name, starred, tags } = typedReq.body;
+    const { name, starred, tags: tagsArray } = typedReq.body;
+    const tags = tagsArray ? tagsArray.join(',') : '';
     const userId = typedReq.user.id;
 
     await Todo.updateCard(cardId, userId, { name, starred, tags });
