@@ -11,6 +11,7 @@ import { createPinnedWindow } from './windows/pinnedWindow/index.js';
 import { log } from 'node:console';
 let mainWindow: BrowserWindow | null = null;
 let screenshotWindow: BrowserWindow | null = null;
+let screenshotWindows: BrowserWindow[] = [];
 let editorWindow: BrowserWindow | null = null;
 let windowStateBeforeScreenshot: { x: number; y: number; width: number; height: number; isMaximized: boolean } | null = null;
 
@@ -153,13 +154,18 @@ async function createMainWindow() {
 }
 
 async function createScreenshotWindow() {
-  if (screenshotWindow) {
-    screenshotWindow.focus();
+  // 如果已有截图窗口，先关闭它们
+  if (screenshotWindows.length > 0) {
+    screenshotWindows.forEach((win) => {
+      if (!win.isDestroyed()) {
+        win.focus();
+      }
+    });
     return;
   }
 
-  const display = screen.getPrimaryDisplay();
-  const { width, height } = display.size;
+  // 获取所有屏幕
+  const displays = screen.getAllDisplays();
 
   // 隐藏主窗口
   if (mainWindow) {
@@ -174,49 +180,112 @@ async function createScreenshotWindow() {
     mainWindow.hide();
   }
 
-  // 创建全屏透明窗口用于截图选择
-  screenshotWindow = new BrowserWindow({
-    width,
-    height,
-    x: 0,
-    y: 0,
-    frame: false,
-    transparent: true,
-    alwaysOnTop: true,
-    skipTaskbar: true,
-    resizable: false,
-    movable: false,
-    backgroundColor: '#00000000',
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      contextIsolation: true,
-      sandbox: false,
-    },
-  });
-
-  // 加载截图选择器页面
+  // 为每个屏幕创建一个独立的窗口
   const htmlPath = resolveHtmlPath();
-  if (process.env.VITE_DEV_SERVER_URL && !app.isPackaged) {
-    await screenshotWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}?screenshot=true`);
-  } else {
-    await screenshotWindow.loadFile(htmlPath, { query: { screenshot: 'true' } });
+  let loadedCount = 0;
+  const totalDisplays = displays.length;
+
+  for (const display of displays) {
+    const bounds = display.bounds;
+    
+    // 为每个屏幕创建独立的透明窗口
+    const win = new BrowserWindow({
+      width: bounds.width,
+      height: bounds.height,
+      x: bounds.x,
+      y: bounds.y,
+      frame: false,
+      transparent: true,
+      alwaysOnTop: true,
+      skipTaskbar: true,
+      resizable: false,
+      movable: false,
+      backgroundColor: '#00000000',
+      acceptFirstMouse: true,
+      webPreferences: {
+        preload: path.join(__dirname, 'preload.js'),
+        contextIsolation: true,
+        sandbox: false,
+      },
+    });
+
+    screenshotWindows.push(win);
+
+    // 加载截图选择器页面
+    if (process.env.VITE_DEV_SERVER_URL && !app.isPackaged) {
+      await win.loadURL(`${process.env.VITE_DEV_SERVER_URL}?screenshot=true`);
+    } else {
+      await win.loadFile(htmlPath, { query: { screenshot: 'true' } });
+    }
+
+    // 等待页面加载完成后发送截图触发事件
+    win.webContents.once('did-finish-load', () => {
+      loadedCount++;
+      // 所有窗口加载完成后，向所有窗口发送触发事件
+      if (loadedCount === totalDisplays) {
+        screenshotWindows.forEach((w) => {
+          if (!w.isDestroyed()) {
+            w.webContents.send('screenshot:trigger');
+          }
+        });
+      }
+    });
+
+    // 监听窗口关闭事件
+    win.on('closed', async () => {
+      screenshotWindows = screenshotWindows.filter((w) => w !== win);
+      // 如果所有截图窗口都关闭了，恢复主窗口
+      if (screenshotWindows.length === 0) {
+        screenshotWindow = null;
+        // 更新截图事件处理器中的窗口引用
+        const { updateScreenshotWindowRefs } = await import('./screenshot/event.js');
+        updateScreenshotWindowRefs(mainWindow, screenshotWindow, editorWindow, windowStateBeforeScreenshot);
+        
+        // 如果主窗口存在且有保存的状态，恢复主窗口
+        if (mainWindow && windowStateBeforeScreenshot) {
+          if (windowStateBeforeScreenshot.isMaximized) {
+            mainWindow.maximize();
+          } else {
+            mainWindow.setBounds({
+              x: windowStateBeforeScreenshot.x,
+              y: windowStateBeforeScreenshot.y,
+              width: windowStateBeforeScreenshot.width,
+              height: windowStateBeforeScreenshot.height,
+            });
+          }
+          mainWindow.show();
+          windowStateBeforeScreenshot = null;
+        }
+      }
+    });
   }
 
-  // 等待页面加载完成后发送截图触发事件
-  screenshotWindow.webContents.once('did-finish-load', () => {
-    screenshotWindow?.webContents.send('screenshot:trigger');
-  });
-
-  screenshotWindow.on('closed', async () => {
-    screenshotWindow = null;
-    // 更新截图事件处理器中的窗口引用
-    const { updateScreenshotWindowRefs } = await import('./screenshot/event.js');
-    updateScreenshotWindowRefs(mainWindow, screenshotWindow, editorWindow, windowStateBeforeScreenshot);
-  });
+  // 为了兼容性，保留 screenshotWindow 引用（指向第一个窗口）
+  screenshotWindow = screenshotWindows[0] || null;
   
   // 创建窗口后更新截图事件处理器中的窗口引用
   const { updateScreenshotWindowRefs } = await import('./screenshot/event.js');
   updateScreenshotWindowRefs(mainWindow, screenshotWindow, editorWindow, windowStateBeforeScreenshot);
+}
+
+/**
+ * 关闭所有截图窗口
+ */
+export function closeAllScreenshotWindows() {
+  screenshotWindows.forEach((win) => {
+    if (!win.isDestroyed()) {
+      win.close();
+    }
+  });
+  screenshotWindows = [];
+  screenshotWindow = null;
+}
+
+/**
+ * 获取所有截图窗口
+ */
+export function getScreenshotWindows() {
+  return screenshotWindows;
 }
 
 
