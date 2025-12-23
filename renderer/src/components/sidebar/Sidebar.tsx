@@ -38,12 +38,12 @@ export function Sidebar({ onSettingsClick }: SidebarProps) {
   });
 
   return (
-    <aside className="flex w-60 flex-col border-r border-slate-200 bg-white/80 p-6 backdrop-blur">
-      <div className="mb-8 space-y-1">
+    <aside className="flex w-60 h-screen flex-col border-r border-slate-200 bg-white/80 backdrop-blur overflow-hidden">
+      <div className="flex-shrink-0 p-6 pb-4 space-y-1">
         <h1 className="text-2xl font-semibold text-slate-900">xTool</h1>
         <p className="text-sm text-slate-500">多种实用工具</p>
       </div>
-      <nav className="space-y-3 flex-1">
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden px-6 space-y-3">
         {navItems.map((route) => (
           <NavLink
             key={route.path}
@@ -61,7 +61,7 @@ export function Sidebar({ onSettingsClick }: SidebarProps) {
           </NavLink>
         ))}
       </nav>
-      <div className="mt-auto pt-4 border-t border-slate-200">
+      <div className="flex-shrink-0 p-6 pt-4 border-t border-slate-200">
         <div className="mb-3 flex items-center justify-between">
           <span className="text-xs text-slate-500">
             {user?.user_type === 'guest' ? '路人身份' : user?.username}

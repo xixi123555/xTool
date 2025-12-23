@@ -6,6 +6,7 @@ import { TodoListPanel } from '../page/todo-list/TodoListPanel';
 import { TranslationPanel } from '../page/translation/TranslationPanel';
 import { WebReaderPanel } from '../page/web-reader/WebReaderPanel';
 import { ComparisonPanel } from '../page/comparison/ComparisonPanel';
+import { StockPanel } from '../page/stock/StockPanel';
 
 export interface RouteConfig {
   path: string;
@@ -73,6 +74,14 @@ export const routes: RouteConfig[] = [
     element: <ComparisonPanel />,
     label: '对比',
     icon: '🔍',
+    permissionKey: '',
+    isShowForGuest: true,
+  },
+  {
+    path: '/stock',
+    element: <StockPanel />,
+    label: '股票',
+    icon: '📈',
     permissionKey: '',
     isShowForGuest: true,
   },

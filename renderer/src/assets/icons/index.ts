@@ -10,4 +10,5 @@ export { RectangleIcon, CircleIcon } from './ShapeIcons';
 export { BookmarkIcon } from './BookmarkIcon';
 export { CloseIcon } from './CloseIcon';
 export { CameraIcon } from './CameraIcon';
+export { SearchIcon } from './SearchIcon';
 

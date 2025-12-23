@@ -12,6 +12,7 @@
     "@types/node": "^24.10.0",
     "axios": "^1.13.2",
     "devtools-suite-shared": "*",
+    "echarts": "^6.0.0",
     "framer-motion": "^12.23.24",
     "jsonlint-mod": "^1.7.6",
     "monaco-editor": "^0.55.1",

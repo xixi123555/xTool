@@ -122,6 +122,12 @@
     --theme-gradient-bg: linear-gradient(to bottom right, theme('colors.pink.50'), theme('colors.purple.50'), theme('colors.blue.50'));
   }
 
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
+  }
+
   body {
     font-family: theme('fontFamily.sans');
     background: var(--theme-bg-primary);
