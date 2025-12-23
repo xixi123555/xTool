@@ -5,6 +5,7 @@ import { ScreenshotHistoryPanel } from '../page/screenshot-history/ScreenshotHis
 import { TodoListPanel } from '../page/todo-list/TodoListPanel';
 import { TranslationPanel } from '../page/translation/TranslationPanel';
 import { WebReaderPanel } from '../page/web-reader/WebReaderPanel';
+import { ComparisonPanel } from '../page/comparison/ComparisonPanel';
 
 export interface RouteConfig {
   path: string;
@@ -66,6 +67,14 @@ export const routes: RouteConfig[] = [
     permissionKey: '',
     requiresAuth: true,
     isShowForGuest: false,
+  },
+  {
+    path: '/comparison',
+    element: <ComparisonPanel />,
+    label: '对比',
+    icon: '🔍',
+    permissionKey: '',
+    isShowForGuest: true,
   },
 ];
 
