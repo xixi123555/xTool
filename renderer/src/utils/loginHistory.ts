@@ -39,7 +39,7 @@ export async function saveLoginHistory(item: Omit<LoginHistoryItem, 'lastLoginTi
  */
 export async function getLatestLoginHistory(loginType: 'password' | 'code' | 'register'): Promise<LoginHistoryItem | null> {
   try {
-    return (await window.api.invoke('login-history:get-latest', loginType)) as LoginHistoryItem | null;
+    return (await window.api?.invoke('login-history:get-latest', loginType)) as LoginHistoryItem | null;
   } catch (error) {
     console.error('获取最新登录历史失败:', error);
     return null;

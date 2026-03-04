@@ -10,6 +10,7 @@ import appKeyRoutes from './routes/appKey.js';
 import shortcutRoutes from './routes/shortcut.js';
 import appSettingRoutes from './routes/appSetting.js';
 import todoRoutes from './routes/todo.js';
+import bookkeepingRoutes from './routes/bookkeeping.js';
 
 dotenv.config();
 
@@ -32,6 +33,7 @@ app.use('/api/appkey', appKeyRoutes);
 app.use('/api/shortcut', shortcutRoutes);
 app.use('/api/appsetting', appSettingRoutes);
 app.use('/api/todo', todoRoutes);
+app.use('/api/bookkeeping', bookkeepingRoutes);
 
 // 错误处理
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {

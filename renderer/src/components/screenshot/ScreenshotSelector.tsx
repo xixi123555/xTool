@@ -29,7 +29,7 @@ export function ScreenshotSelector({
       setCurrentMousePos(null);
       setWindowBounds(null);
       // 停止鼠标跟踪
-      window.api.invoke('screenshot:stop-mouse-tracking').catch(console.error);
+      window.api?.invoke('screenshot:stop-mouse-tracking').catch(console.error);
     } else {
       // 获取窗口边界
       window.api.invoke('screenshot:get-window-bounds').then((bounds) => {

@@ -176,6 +176,49 @@ export async function initDatabase(): Promise<void> {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     `);
 
+    // 创建记账表（多人共同维护）
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS bookkeeping_records (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL COMMENT '创建者，支持多人共同维护',
+        purpose VARCHAR(100) NOT NULL COMMENT '用途/分类',
+        description VARCHAR(500) DEFAULT '' COMMENT '说明/备注',
+        amount DECIMAL(12,2) NOT NULL COMMENT '金额',
+        type ENUM('expense', 'income') NOT NULL DEFAULT 'expense' COMMENT '类型：支出/收入',
+        record_date DATE NOT NULL COMMENT '记账日期',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        INDEX idx_user_id (user_id),
+        INDEX idx_record_date (record_date),
+        INDEX idx_type (type)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    // 记账用途表（可编辑标签，is_default 表示是否默认选中）
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS bookkeeping_purposes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100) NOT NULL COMMENT '用途名称',
+        is_default TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否默认用途，仅有一个可为 1',
+        sort_order INT NOT NULL DEFAULT 0 COMMENT '排序，数字越小越靠前',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uk_name (name),
+        INDEX idx_is_default (is_default)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    // 若无任何用途，插入默认用途「装修」
+    const [purposesRows] = await pool.execute(
+      `SELECT COUNT(*) AS cnt FROM bookkeeping_purposes`
+    ) as [any[], any];
+    if (purposesRows[0].cnt === 0) {
+      await pool.execute(
+        `INSERT INTO bookkeeping_purposes (name, is_default, sort_order) VALUES ('装修', 1, 0)`
+      );
+    }
+
     console.log('数据库表初始化成功');
   } catch (error) {
     console.error('数据库初始化失败:', error);

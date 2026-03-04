@@ -7,6 +7,7 @@ import { TranslationPanel } from '../page/translation/TranslationPanel';
 import { WebReaderPanel } from '../page/web-reader/WebReaderPanel';
 import { ComparisonPanel } from '../page/comparison/ComparisonPanel';
 import { StockPanel } from '../page/stock/StockPanel';
+import { BookkeepingPanel } from '../page/bookkeeping/BookkeepingPanel';
 
 export interface RouteConfig {
   path: string;
@@ -85,8 +86,16 @@ export const routes: RouteConfig[] = [
     permissionKey: '',
     isShowForGuest: true,
   },
+  {
+    path: '/bookkeeping',
+    element: <BookkeepingPanel />,
+    label: '记账',
+    icon: '💰',
+    permissionKey: '',
+    isShowForGuest: true,
+  },
 ];
 
 // 默认路由
-export const defaultRoute = '/clipboard';
+export const defaultRoute = '/bookkeeping';
 
