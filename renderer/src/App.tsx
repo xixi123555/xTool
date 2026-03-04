@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Sidebar } from './components/sidebar/Sidebar';
+import { MenuDrawer } from './components/sidebar/MenuDrawer';
+import { MenuFab } from './components/sidebar/MenuFab';
 import { LoginPage } from './page/login/LoginPage';
 import { SettingsDrawer } from './components/settings/SettingsDrawer';
 import { SettingsPanel } from './page/settings/SettingsPanel';
@@ -12,6 +14,8 @@ import { useAppStore } from './store/useAppStore';
 import { useIpcEvent } from './hooks/useIpcEvent';
 import { showToast } from './components/toast/Toast';
 
+const MENU_OPEN_KEY = 'xtool_menu_open';
+
 // 主应用内容组件（需要登录）
 function MainApp() {
   const navigate = useNavigate();
@@ -20,6 +24,14 @@ function MainApp() {
   const [draggables, setDraggables] = useState<Array<{ id: string; src: string }>>([]);
   const [editingImage, setEditingImage] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(() => {
+    try {
+      const v = localStorage.getItem(MENU_OPEN_KEY);
+      return v !== 'false';
+    } catch {
+      return true;
+    }
+  });
 
   // 应用主题到根元素
   useEffect(() => {
@@ -125,12 +137,27 @@ function MainApp() {
     return <Navigate to="/login" replace />;
   }
 
+  useEffect(() => {
+    try {
+      localStorage.setItem(MENU_OPEN_KEY, String(menuOpen));
+    } catch (_) {}
+  }, [menuOpen]);
+
   return (
     <div className="flex h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-white text-slate-800">
-      <Sidebar onSettingsClick={() => setSettingsOpen(true)} />
-      <main className="flex flex-1 flex-col gap-4 p-6 overflow-hidden">
+      <main className="flex flex-1 flex-col gap-4 p-6 overflow-hidden min-w-0">
         <AppRouter />
       </main>
+
+      {/* 右侧菜单抽屉 */}
+      <MenuDrawer open={menuOpen} onClose={() => setMenuOpen(false)}>
+        <Sidebar
+          onSettingsClick={() => setSettingsOpen(true)}
+          onClose={() => setMenuOpen(false)}
+        />
+      </MenuDrawer>
+
+      {!menuOpen && <MenuFab onClick={() => setMenuOpen(true)} />}
 
       {/* 设置抽屉 */}
       <SettingsDrawer

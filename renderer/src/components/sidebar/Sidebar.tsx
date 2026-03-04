@@ -2,13 +2,14 @@ import { NavLink } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
 import { showToast } from '../toast/Toast';
 import { routes } from '../../router';
-import { SettingsIcon } from '../../assets/icons';
+import { SettingsIcon, CloseIcon } from '../../assets/icons';
 
 type SidebarProps = {
   onSettingsClick: () => void;
+  onClose?: () => void;
 };
 
-export function Sidebar({ onSettingsClick }: SidebarProps) {
+export function Sidebar({ onSettingsClick, onClose }: SidebarProps) {
   const { user, logout, canUseFeature } = useAppStore();
 
   const handleLogout = () => {
@@ -38,10 +39,22 @@ export function Sidebar({ onSettingsClick }: SidebarProps) {
   });
 
   return (
-    <aside className="flex w-60 h-screen flex-col border-r border-slate-200 bg-white/80 backdrop-blur overflow-hidden">
-      <div className="flex-shrink-0 p-6 pb-4 space-y-1">
-        <h1 className="text-2xl font-semibold text-slate-900">xTool</h1>
-        <p className="text-sm text-slate-500">多种实用工具</p>
+    <aside className="flex w-full h-full flex-col overflow-hidden">
+      <div className="flex-shrink-0 p-6 pb-4 space-y-1 flex items-start justify-between gap-2">
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-900">xTool</h1>
+          <p className="text-sm text-slate-500">多种实用工具</p>
+        </div>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
+            aria-label="收起菜单"
+          >
+            <CloseIcon className="h-5 w-5" />
+          </button>
+        )}
       </div>
       <nav className="flex-1 overflow-y-auto overflow-x-hidden px-6 space-y-3">
         {navItems.map((route) => (

@@ -18,11 +18,13 @@ function AddRecordForm({
   defaultPurpose,
   purposeHandlers,
   onAdd,
+  onTypeChange,
 }: {
   purposes: BookkeepingPurposeItem[];
   defaultPurpose: BookkeepingPurposeItem | undefined;
   purposeHandlers: PurposeHandlers;
   onAdd: (r: { purpose: string; description: string; amount: number; type: 'expense' | 'income' }) => void;
+  onTypeChange?: (t: 'expense' | 'income') => void;
 }) {
   const [purpose, setPurpose] = useState('');
   const [description, setDescription] = useState('');
@@ -32,6 +34,16 @@ function AddRecordForm({
   const [inputValue, setInputValue] = useState('');
   const amountRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // 进入页面后自动聚焦到金额输入框
+  useEffect(() => {
+    amountRef.current?.focus();
+  }, []);
+
+  const handleTypeClick = (next: 'expense' | 'income') => {
+    setType(next);
+    onTypeChange?.(next);
+  };
 
   // 当有默认用途且当前用途为空时，填入默认用途（如初次加载或用户清空后）
   useEffect(() => {
@@ -84,7 +96,7 @@ function AddRecordForm({
       <div className="flex gap-2">
         <button
           type="button"
-          onClick={() => setType('expense')}
+          onClick={() => handleTypeClick('expense')}
           className={`flex-1 py-3 rounded-xl text-sm font-medium transition ${
             type === 'expense' ? 'bg-red-500 text-white' : 'bg-slate-100 text-slate-600'
           }`}
@@ -93,7 +105,7 @@ function AddRecordForm({
         </button>
         <button
           type="button"
-          onClick={() => setType('income')}
+          onClick={() => handleTypeClick('income')}
           className={`flex-1 py-3 rounded-xl text-sm font-medium transition ${
             type === 'income' ? 'bg-green-500 text-white' : 'bg-slate-100 text-slate-600'
           }`}
@@ -153,14 +165,6 @@ function AddRecordForm({
             </button>
           )}
         </div>
-        <input
-          type="text"
-          placeholder="或输入自定义用途"
-          value={purpose}
-          onChange={(e) => setPurpose(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-          className="mt-2 w-full py-2 px-3 rounded-lg border border-slate-200 focus:border-slate-400 focus:outline-none"
-        />
       </div>
 
       <div>
@@ -262,7 +266,9 @@ export function BookkeepingPanel() {
   const user = useAppStore((s) => s.user);
   const defaultPurpose = purposes.find((p) => p.is_default === 1);
 
-  const groupedByDate = records.reduce<Record<string, BookkeepingRecord[]>>((acc, r) => {
+  const [currentType, setCurrentType] = useState<'expense' | 'income'>('expense');
+  const filteredRecords = records.filter((r) => r.type === currentType);
+  const groupedByDate = filteredRecords.reduce<Record<string, BookkeepingRecord[]>>((acc, r) => {
     const d = r.record_date;
     if (!acc[d]) acc[d] = [];
     acc[d].push(r);
@@ -288,7 +294,7 @@ export function BookkeepingPanel() {
         <p className="text-sm text-slate-500">简洁记账，多人共享</p>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto py-4 px-0 space-y-4">
         <AddRecordForm
           purposes={purposes}
           defaultPurpose={defaultPurpose}
@@ -299,23 +305,28 @@ export function BookkeepingPanel() {
             setDefault: handleSetDefaultPurpose,
           }}
           onAdd={handleAdd}
+          onTypeChange={setCurrentType}
         />
 
         <div>
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-medium text-slate-600">账单记录</h3>
             {records.length > 0 && (
-              <div className="flex items-center gap-4 text-sm">
-                <span className="text-green-600">收入 +¥{totalIncome.toFixed(2)}</span>
-                <span className="text-red-600">支出 ¥{totalExpense.toFixed(2)}</span>
-                <span className="font-medium text-slate-700">
-                  合计 ¥{(totalIncome - totalExpense).toFixed(2)}
-                </span>
+              <div className="text-sm font-medium">
+                {currentType === 'expense' ? (
+                  <span className="text-red-600">支出 ¥{totalExpense.toFixed(2)}</span>
+                ) : (
+                  <span className="text-green-600">收入 +¥{totalIncome.toFixed(2)}</span>
+                )}
               </div>
             )}
           </div>
           {sortedDates.length === 0 ? (
-            <div className="py-8 text-center text-slate-400 text-sm">暂无记录，记一笔吧</div>
+            <div className="py-8 text-center text-slate-400 text-sm">
+              {filteredRecords.length === 0 && records.length === 0
+                ? '暂无记录，记一笔吧'
+                : `暂无${currentType === 'expense' ? '支出' : '收入'}记录`}
+            </div>
           ) : (
             <div className="space-y-4">
               {sortedDates.map((date) => (
