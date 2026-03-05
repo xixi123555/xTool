@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { TodoItemComponent } from './TodoItem';
 import { useIpcEvent } from '../../hooks/useIpcEvent';
+import { PlusIcon } from '../../assets/icons';
 
 type TodoItem = {
   id: string;
