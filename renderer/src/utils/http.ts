@@ -2,11 +2,15 @@
  * HTTP 请求模块 - 基于 axios 的统一请求处理
  */
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
+import { useAppStore } from '../store/useAppStore';
+
+const BASE_URL = import.meta.env.PROD
+  ? 'http://39.105.137.213:5198/api'
+  : 'http://localhost:5198/api';
 
 // 创建 axios 实例
 const httpClient: AxiosInstance = axios.create({
-  baseURL: 'http://39.105.137.213:5198/api', // API 基础 URL
-  // baseURL: 'http://localhost:5198/api', // API 基础 URL
+  baseURL: BASE_URL,
   timeout: 30000, // 30秒超时
   headers: {
     'Content-Type': 'application/json',
@@ -34,6 +38,9 @@ httpClient.interceptors.request.use(
   }
 );
 
+// 不需要触发登出的登录相关路径
+const AUTH_PATHS = ['/auth/login', '/auth/login-by-code', '/auth/guest', '/auth/send-code'];
+
 // 响应拦截器
 httpClient.interceptors.response.use(
   (response) => {
@@ -42,10 +49,19 @@ httpClient.interceptors.response.use(
   (error: AxiosError<{ message?: string }>) => {
     // 统一错误处理
     if (error.response) {
-      // 服务器返回了错误状态码
       const status = error.response.status;
       const message = error.response.data?.message || error.message || '请求失败';
       console.error(`HTTP Error ${status}:`, message);
+
+      // token 过期或无效时，排除登录相关接口，统一登出并跳转登录页
+      if (status === 401) {
+        const requestUrl = error.config?.url || '';
+        const isAuthPath = AUTH_PATHS.some((path) => requestUrl.includes(path));
+        if (!isAuthPath) {
+          useAppStore.getState().logout();
+          window.location.pathname = '/login';
+        }
+      }
     } else if (error.request) {
       // 请求已发出但没有收到响应
       console.error('Network Error:', error.message);

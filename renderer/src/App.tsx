@@ -20,6 +20,7 @@ const MENU_OPEN_KEY = 'xtool_menu_open';
 function MainApp() {
   const navigate = useNavigate();
   const { user, token, setUser, setToken, shortcuts, setShortcuts, setAppConfig, appConfig } = useAppStore();
+  const [isInitialized, setIsInitialized] = useState(false);
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [draggables, setDraggables] = useState<Array<{ id: string; src: string }>>([]);
   const [editingImage, setEditingImage] = useState<string | null>(null);
@@ -94,6 +95,7 @@ function MainApp() {
         document.body.classList.remove('theme-light', 'theme-dark', 'theme-colorful');
       }
     }
+    setIsInitialized(true);
   }, [setToken, setUser, setShortcuts, setAppConfig]);
 
   useIpcEvent('screenshot:trigger', () => setSelectorOpen(true));
@@ -132,16 +134,21 @@ function MainApp() {
     }
   }
 
-  // 如果未登录，重定向到登录页
-  if (!user || !token) {
-    return <Navigate to="/login" replace />;
-  }
-
   useEffect(() => {
     try {
       localStorage.setItem(MENU_OPEN_KEY, String(menuOpen));
     } catch (_) {}
   }, [menuOpen]);
+
+  // 等待 localStorage 恢复完成再决定跳转，避免初始化时误跳转
+  if (!isInitialized) {
+    return null;
+  }
+
+  // 如果未登录，重定向到登录页
+  if (!user || !token) {
+    return <Navigate to="/login" replace />;
+  }
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-white text-slate-800">
