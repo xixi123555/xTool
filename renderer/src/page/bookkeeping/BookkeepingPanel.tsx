@@ -32,6 +32,8 @@ function AddRecordForm({
   const [type, setType] = useState<'expense' | 'income'>('expense');
   const [inputVisible, setInputVisible] = useState(false);
   const [inputValue, setInputValue] = useState('');
+  const [descriptionError, setDescriptionError] = useState(false);
+  const [descriptionShake, setDescriptionShake] = useState(false);
   const amountRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -66,6 +68,12 @@ function AddRecordForm({
       showToast('请输入用途');
       return;
     }
+    if (!description.trim()) {
+      setDescriptionError(true);
+      setDescriptionShake(true);
+      setTimeout(() => setDescriptionShake(false), 400);
+      return;
+    }
     if (isNaN(amountNum) || amountNum <= 0) {
       showToast('请输入有效金额');
       return;
@@ -78,6 +86,7 @@ function AddRecordForm({
     });
     setAmount('');
     setDescription('');
+    setDescriptionError(false);
     amountRef.current?.focus();
   };
 
@@ -168,14 +177,24 @@ function AddRecordForm({
       </div>
 
       <div>
-        <label className="block text-sm text-slate-600 mb-1">说明（可选）</label>
+        <label className="block text-sm text-slate-600 mb-1">
+          说明
+          <span className="text-red-500 ml-0.5">*</span>
+        </label>
         <input
           type="text"
           placeholder="备注"
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          onChange={(e) => {
+            setDescription(e.target.value);
+            if (e.target.value.trim()) setDescriptionError(false);
+          }}
           onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-          className="w-full py-2 px-3 rounded-lg border border-slate-200 focus:border-slate-400 focus:outline-none"
+          className={`w-full py-2 px-3 rounded-lg border focus:outline-none transition-colors ${
+            descriptionError
+              ? 'border-red-400 focus:border-red-400'
+              : 'border-slate-200 focus:border-slate-400'
+          } ${descriptionShake ? 'input-shake' : ''}`}
         />
       </div>
 
