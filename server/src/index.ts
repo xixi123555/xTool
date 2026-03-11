@@ -11,6 +11,7 @@ import shortcutRoutes from './routes/shortcut.js';
 import appSettingRoutes from './routes/appSetting.js';
 import todoRoutes from './routes/todo.js';
 import bookkeepingRoutes from './routes/bookkeeping.js';
+import videoToGifRoutes from './routes/videoToGif.js';
 
 dotenv.config();
 
@@ -34,6 +35,7 @@ app.use('/api/shortcut', shortcutRoutes);
 app.use('/api/appsetting', appSettingRoutes);
 app.use('/api/todo', todoRoutes);
 app.use('/api/bookkeeping', bookkeepingRoutes);
+app.use('/api/video-to-gif', videoToGifRoutes);
 
 // 错误处理
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {

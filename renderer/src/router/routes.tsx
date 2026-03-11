@@ -8,6 +8,7 @@ import { WebReaderPanel } from '../page/web-reader/WebReaderPanel';
 import { ComparisonPanel } from '../page/comparison/ComparisonPanel';
 import { StockPanel } from '../page/stock/StockPanel';
 import { BookkeepingPanel } from '../page/bookkeeping/BookkeepingPanel';
+import { VideoToGifPanel } from '../page/video-to-gif/VideoToGifPanel';
 
 export interface RouteConfig {
   path: string;
@@ -91,6 +92,14 @@ export const routes: RouteConfig[] = [
     element: <BookkeepingPanel />,
     label: '记账',
     icon: '💰',
+    permissionKey: '',
+    isShowForGuest: true,
+  },
+  {
+    path: '/video-to-gif',
+    element: <VideoToGifPanel />,
+    label: '视频转GIF',
+    icon: '🎬',
     permissionKey: '',
     isShowForGuest: true,
   },
