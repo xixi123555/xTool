@@ -15,6 +15,8 @@ export interface BookkeepingRecord {
   created_at: string;
   updated_at: Date;
   username?: string;
+  attachment_count?: number;
+  image_count?: number;
 }
 
 export class Bookkeeping {
@@ -30,7 +32,9 @@ export class Bookkeeping {
    */
   static async getAllRecords(): Promise<BookkeepingRecord[]> {
     const [rows] = await pool.execute(
-      `SELECT b.id, b.user_id, b.purpose, b.description, b.amount, b.type, b.record_date, b.created_at, b.updated_at, u.username
+      `SELECT b.id, b.user_id, b.purpose, b.description, b.amount, b.type, b.record_date, b.created_at, b.updated_at, u.username,
+              (SELECT COUNT(*) FROM bookkeeping_attachments a WHERE a.record_id = b.id) AS attachment_count,
+              (SELECT COUNT(*) FROM bookkeeping_attachments a WHERE a.record_id = b.id AND a.mime_type LIKE 'image/%') AS image_count
        FROM bookkeeping_records b
        LEFT JOIN users u ON b.user_id = u.id
        ORDER BY b.created_at DESC`,
@@ -48,6 +52,8 @@ export class Bookkeeping {
       created_at: Bookkeeping.formatCreatedAt(row.created_at),
       updated_at: row.updated_at,
       username: row.username || '未知',
+      attachment_count: Number(row.attachment_count) || 0,
+      image_count: Number(row.image_count) || 0,
     }));
   }
 

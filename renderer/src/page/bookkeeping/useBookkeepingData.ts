@@ -9,6 +9,7 @@ import {
   updateBookkeepingPurpose,
   deleteBookkeepingPurpose,
   setDefaultBookkeepingPurpose,
+  uploadRecordAttachments,
   type BookkeepingRecord,
   type BookkeepingPurposeItem,
 } from '../../api/bookkeeping';
@@ -61,10 +62,22 @@ export function useBookkeepingData() {
       description?: string;
       amount: number;
       type: 'expense' | 'income';
+      files?: File[];
     }) => {
       try {
-        const res = await createBookkeepingRecord(record);
+        const { files, ...recordData } = record;
+        const res = await createBookkeepingRecord(recordData);
         if (res.success) {
+          if (files && files.length > 0 && res.id) {
+            try {
+              await uploadRecordAttachments(res.id, files);
+            } catch (uploadErr) {
+              console.error('上传附件失败:', uploadErr);
+              showToast('记录已添加，但附件上传失败');
+              fetchRecords();
+              return;
+            }
+          }
           showToast('添加成功');
           fetchRecords();
         } else {

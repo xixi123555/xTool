@@ -209,6 +209,21 @@ export async function initDatabase(): Promise<void> {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     `);
 
+    // 记账附件表（图片/文件）
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS bookkeeping_attachments (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        record_id INT NOT NULL COMMENT '关联的记账记录',
+        filename VARCHAR(255) NOT NULL COMMENT '服务器存储文件名（唯一）',
+        original_name VARCHAR(255) NOT NULL COMMENT '原始文件名',
+        mime_type VARCHAR(100) NOT NULL COMMENT 'MIME 类型',
+        file_size INT NOT NULL COMMENT '文件大小（字节）',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (record_id) REFERENCES bookkeeping_records(id) ON DELETE CASCADE,
+        INDEX idx_record_id (record_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
     // 若无任何用途，插入默认用途「装修」
     const [purposesRows] = await pool.execute(
       `SELECT COUNT(*) AS cnt FROM bookkeeping_purposes`
