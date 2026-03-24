@@ -168,4 +168,26 @@ yarn dist
 
 ---
 
+## MCP 服务
+
+xTool 提供独立的 MCP (Model Context Protocol) 服务，供 Cursor、Claude 等 AI 客户端调用记账、待办、网页阅读等功能。
+
+### 快速开始
+
+```bash
+cd xtool-mcp
+npm install
+npm run build
+```
+
+### 配置
+
+复制 `xtool-mcp/.env.example` 为 `.env`，配置 `XTOOL_SERVER_URL`、`XTOOL_JWT_TOKEN`（从应用登录后获取）。
+
+### Cursor 集成
+
+在 Cursor 的 MCP 设置中，将 xtool-mcp 添加为 MCP 服务器，详见 [xtool-mcp/README.md](xtool-mcp/README.md)。
+
+---
+
 如需扩展更多工具模块，建议新建子目录并复用现有状态管理、安全沙箱与 IPC 机制，确保主/渲染进程职责清晰。
