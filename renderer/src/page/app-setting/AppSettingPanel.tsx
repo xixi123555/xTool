@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { getAppSetting, updateAppSetting } from '../../api/appSetting';
 import { Switch } from '../../components/common/Switch';
+import { McpKeyPanel } from './McpKeyPanel';
 
 export function AppSettingPanel() {
   const { appConfig, setAppConfig, user } = useAppStore();
@@ -89,7 +90,7 @@ export function AppSettingPanel() {
         <p className="text-sm text-slate-500">管理应用的各项配置选项</p>
       </div>
 
-      <div className="flex-1 space-y-6">
+      <div className="flex-1 space-y-6 overflow-y-auto min-h-0">
         {/* 数据源配置 */}
         <div className="bg-white border border-slate-200 rounded-lg p-6">
           <div className="flex items-start justify-between">
@@ -170,6 +171,9 @@ export function AppSettingPanel() {
             </div>
           </div>
         </div>
+
+        {/* MCP Key */}
+        <McpKeyPanel />
 
         {/* 提示消息 */}
         {message && (

@@ -23,20 +23,20 @@ npm run build
 # xTool Server 地址
 XTOOL_SERVER_URL=http://localhost:5198
 
-# JWT Token（记账、待办需认证）
-XTOOL_JWT_TOKEN=<你的 token>
+# MCP 鉴权 Token（填 mcp_key；也兼容旧 JWT）
+XTOOL_JWT_TOKEN=<你的 mcp_key>
 
 # Dify API Key（可选，网页阅读器。不配置时若已登录，会尝试从 appkey 获取 web_reader）
 DIFY_API_KEY=
 ```
 
-### 获取 Token
+### 获取 MCP Key
 
-1. 在 xTool 应用中登录
-2. 打开浏览器开发者工具 (F12) -> Application -> Local Storage
-3. 查找 `xtool_token` 并复制其值
+1. 使用非路人身份登录 xTool
+2. 打开设置 -> 应用配置 -> 主题设置下方的 `MCP Key`
+3. 点击生成并立即复制（明文只显示一次）
 
-或通过登录接口获取 token 后配置到环境变量。
+将复制得到的 `mcp_key` 填入环境变量 `XTOOL_JWT_TOKEN`（即作为鉴权 Bearer token 使用）。
 
 ## 工具列表
 
@@ -52,7 +52,7 @@ DIFY_API_KEY=
 | `todo/update_item` | 更新待办项（含完成状态） |
 | `web/read_page` | 读取网页正文内容 |
 
-> 记账、待办工具需要配置 `XTOOL_JWT_TOKEN` 后才会注册。
+> 记账、待办工具需要配置 `XTOOL_JWT_TOKEN`（填 mcp_key）后才会注册。
 > 网页阅读器需要 `DIFY_API_KEY` 或已登录并配置 web_reader appKey。
 
 ## Cursor 配置
@@ -67,7 +67,7 @@ DIFY_API_KEY=
       "args": ["/Users/你的用户名/Desktop/knife/xtool-mcp/dist/index.js"],
       "env": {
         "XTOOL_SERVER_URL": "http://localhost:5198",
-        "XTOOL_JWT_TOKEN": "<你的 token>"
+        "XTOOL_JWT_TOKEN": "<你的 mcp_key>"
       }
     }
   }

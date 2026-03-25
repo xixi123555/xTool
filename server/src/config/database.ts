@@ -142,6 +142,21 @@ export async function initDatabase(): Promise<void> {
       }
     }
 
+    // 创建 MCP Key 表（用于替代 JWT 调用 MCP）
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS mcp_keys (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        key_hash VARCHAR(64) NOT NULL COMMENT 'SHA-256 hash（明文不落库）',
+        key_hint VARCHAR(50) NOT NULL COMMENT '用于列表展示的掩码信息',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        UNIQUE KEY uk_key_hash (key_hash),
+        INDEX idx_user_id (user_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
     // 创建待办事项卡片表
     await pool.execute(`
       CREATE TABLE IF NOT EXISTS todo_cards (

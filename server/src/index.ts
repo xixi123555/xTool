@@ -12,6 +12,7 @@ import appSettingRoutes from './routes/appSetting.js';
 import todoRoutes from './routes/todo.js';
 import bookkeepingRoutes from './routes/bookkeeping.js';
 import videoToGifRoutes from './routes/videoToGif.js';
+import mcpKeyRoutes from './routes/mcpKey.js';
 
 dotenv.config();
 
@@ -36,6 +37,7 @@ app.use('/api/appsetting', appSettingRoutes);
 app.use('/api/todo', todoRoutes);
 app.use('/api/bookkeeping', bookkeepingRoutes);
 app.use('/api/video-to-gif', videoToGifRoutes);
+app.use('/api/mcpkey', mcpKeyRoutes);
 
 // 错误处理
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {

@@ -182,7 +182,7 @@ npm run build
 
 ### 配置
 
-复制 `xtool-mcp/.env.example` 为 `.env`，配置 `XTOOL_SERVER_URL`、`XTOOL_JWT_TOKEN`（从应用登录后获取）。
+复制 `xtool-mcp/.env.example` 为 `.env`，配置 `XTOOL_SERVER_URL`、`XTOOL_JWT_TOKEN`（从 xTool 设置 -> 应用配置 -> 主题设置下方生成的 `mcp_key`）。
 
 ### Cursor 集成
 

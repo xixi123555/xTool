@@ -49,6 +49,16 @@ export interface AppSetting {
   updated_at?: Date;
 }
 
+// MCP Key 接口（明文不落库，接口只返回掩码/创建时间）
+export interface McpKey {
+  id: number;
+  user_id: number;
+  key_hash?: string;
+  key_hint: string;
+  created_at?: Date;
+  updated_at?: Date;
+}
+
 // 待办事项项接口
 export interface TodoItem {
   id: string;
