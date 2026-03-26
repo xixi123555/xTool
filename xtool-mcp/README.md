@@ -35,8 +35,11 @@ MCP_HTTP_PATH=/mcp
 # 允许的 Host 列表（逗号分隔，公网部署时建议设置）
 # MCP_ALLOWED_HOSTS=mcp.example.com,localhost
 
-# MCP 鉴权 Token（可选后备，不配置时完全依赖请求头中的 Bearer）
-XTOOL_JWT_TOKEN=<你的 mcp_key>
+# MCP Key（推荐，可选后备，不配置时依赖请求头）
+XTOOL_MCP_KEY=<你的 mcp_key>
+
+# JWT Token（兼容保留，可选后备）
+XTOOL_JWT_TOKEN=
 
 # Dify API Key（可选，网页阅读器专用）
 DIFY_API_KEY=
@@ -75,7 +78,7 @@ npm start
 | `todo/update_item` | 更新待办项（含完成状态） |
 | `web/read_page` | 读取网页正文内容 |
 
-> 所有需要认证的操作（记账、待办、网页阅读）需要在请求中携带 Bearer token（mcp_key 或 JWT）。
+> 所有需要认证的操作（记账、待办、网页阅读）支持两种携带方式：`Authorization: Bearer <token>` 或 `mcp-key: <mcp_key>`。
 
 ## Cursor 配置
 
@@ -87,7 +90,7 @@ npm start
     "xtool": {
       "url": "http://localhost:5197/mcp",
       "headers": {
-        "Authorization": "Bearer <你的 mcp_key>"
+        "mcp-key": "<你的 mcp_key>"
       }
     }
   }

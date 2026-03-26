@@ -2,7 +2,7 @@
 /**
  * xTool MCP Server 入口 - Streamable HTTP 传输
  */
-import { config, hasEnvToken, hasEnvDifyKey } from './config.js';
+import { config, hasEnvToken, hasEnvMcpKey, hasEnvDifyKey } from './config.js';
 import { logger } from './logger.js';
 import { createStreamableHttpApp, shutdownAllTransports } from './streamableHttpApp.js';
 
@@ -12,6 +12,7 @@ async function main(): Promise<void> {
     httpPort: config.httpPort,
     httpHost: config.httpHost,
     httpPath: config.httpPath,
+    hasEnvMcpKey: hasEnvMcpKey(),
     hasEnvToken: hasEnvToken(),
     hasEnvDifyKey: hasEnvDifyKey(),
   });

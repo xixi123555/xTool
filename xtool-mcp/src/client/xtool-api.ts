@@ -3,12 +3,12 @@
  * 远端 MCP 模式下，每次调用根据请求级 Bearer 或环境变量后备 Token 组装 Authorization
  */
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { config, hasEnvToken } from '../config.js';
+import { config, hasEnvToken, getEnvFallbackToken } from '../config.js';
 import { getRequestBearer } from '../requestContext.js';
 import { logger } from '../logger.js';
 
 function getEffectiveToken(): string {
-  return getRequestBearer() || config.jwtToken;
+  return getRequestBearer() || getEnvFallbackToken();
 }
 
 function createClient(token: string): AxiosInstance {
@@ -63,7 +63,7 @@ function getClient(): AxiosInstance {
 export function requireAuth(): void {
   const token = getEffectiveToken();
   if (!token) {
-    throw new Error('未提供认证信息：请在请求头中携带 Bearer token，或在环境变量中配置 XTOOL_JWT_TOKEN');
+    throw new Error('未提供认证信息：请在请求头中携带 Bearer token 或 mcp-key，或在环境变量中配置 XTOOL_MCP_KEY / XTOOL_JWT_TOKEN');
   }
 }
 

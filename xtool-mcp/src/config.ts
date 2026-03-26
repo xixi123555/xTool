@@ -20,7 +20,10 @@ export const config = {
     return base.endsWith('/api') ? base : `${base}/api`;
   },
 
-  /** JWT Token / MCP Key（后备默认 Bearer） */
+  /** MCP Key（推荐，作为后备默认认证） */
+  mcpKey: getEnv('XTOOL_MCP_KEY'),
+
+  /** JWT Token（兼容保留，作为后备默认认证） */
   jwtToken: getEnv('XTOOL_JWT_TOKEN'),
 
   /** Dify API Key，网页阅读器专用（可选） */
@@ -41,9 +44,19 @@ export const config = {
     : undefined,
 };
 
+/** 获取环境变量后备 token（优先 MCP Key，其次 JWT） */
+export function getEnvFallbackToken(): string {
+  return config.mcpKey || config.jwtToken;
+}
+
+/** 环境变量是否配置了 MCP Key */
+export function hasEnvMcpKey(): boolean {
+  return Boolean(config.mcpKey);
+}
+
 /** 环境变量是否配置了 xTool 后备 Token */
 export function hasEnvToken(): boolean {
-  return Boolean(config.jwtToken);
+  return Boolean(getEnvFallbackToken());
 }
 
 /** 环境变量是否配置了 Dify Key */

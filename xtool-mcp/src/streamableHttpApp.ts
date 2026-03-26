@@ -12,6 +12,7 @@ import { config } from './config.js';
 import { logger } from './logger.js';
 import { createAppMcpServer } from './mcpServerFactory.js';
 import { runWithBearer } from './requestContext.js';
+import { getEnvFallbackToken } from './config.js';
 
 const transports: Record<string, StreamableHTTPServerTransport> = {};
 
@@ -21,13 +22,26 @@ function extractBearer(req: Request): string | undefined {
   return undefined;
 }
 
+function extractMcpKey(req: Request): string | undefined {
+  const mcpKey = req.headers['mcp-key'];
+  const xMcpKey = req.headers['x-mcp-key'];
+  const value = (Array.isArray(mcpKey) ? mcpKey[0] : mcpKey)
+    || (Array.isArray(xMcpKey) ? xMcpKey[0] : xMcpKey);
+  return value?.trim() || undefined;
+}
+
+function extractAuthToken(req: Request): string | undefined {
+  // 显式 mcp-key 优先，确保可准确绑定到 MCP Key 对应用户
+  return extractMcpKey(req) || extractBearer(req) || getEnvFallbackToken();
+}
+
 /** Bearer 认证中间件：必须提供有效 token（或 env 后备） */
 function requireBearerMiddleware(req: Request, res: Response, next: NextFunction): void {
-  const token = extractBearer(req) || config.jwtToken;
+  const token = extractAuthToken(req);
   if (!token) {
     res.status(401).json({
       jsonrpc: '2.0',
-      error: { code: -32001, message: 'Unauthorized: Bearer token required' },
+      error: { code: -32001, message: 'Unauthorized: token required (Authorization Bearer or mcp-key)' },
       id: null,
     });
     return;
@@ -36,7 +50,7 @@ function requireBearerMiddleware(req: Request, res: Response, next: NextFunction
 }
 
 async function handlePost(req: Request, res: Response): Promise<void> {
-  const bearerToken = extractBearer(req) || config.jwtToken;
+  const bearerToken = extractAuthToken(req);
   const sessionId = req.headers['mcp-session-id'] as string | undefined;
 
   try {
@@ -95,7 +109,7 @@ async function handlePost(req: Request, res: Response): Promise<void> {
 }
 
 async function handleGet(req: Request, res: Response): Promise<void> {
-  const bearerToken = extractBearer(req) || config.jwtToken;
+  const bearerToken = extractAuthToken(req);
   const sessionId = req.headers['mcp-session-id'] as string | undefined;
   if (!sessionId || !transports[sessionId]) {
     res.status(400).send('Invalid or missing session ID');
@@ -108,7 +122,7 @@ async function handleGet(req: Request, res: Response): Promise<void> {
 }
 
 async function handleDelete(req: Request, res: Response): Promise<void> {
-  const bearerToken = extractBearer(req) || config.jwtToken;
+  const bearerToken = extractAuthToken(req);
   const sessionId = req.headers['mcp-session-id'] as string | undefined;
   if (!sessionId || !transports[sessionId]) {
     res.status(400).send('Invalid or missing session ID');
