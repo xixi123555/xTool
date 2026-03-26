@@ -133,7 +133,7 @@ export const routes: RouteConfig[] = [
     label: '聊天室',
     icon: '💬',
     permissionKey: '',
-    isShowForGuest: false,
+    isShowForGuest: true,
   },
 ];
 
