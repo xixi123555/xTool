@@ -7,6 +7,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import * as bookkeeping from './bookkeeping.js';
 import * as todo from './todo.js';
 import * as webReader from './web-reader.js';
+import * as chat from './chat.js';
 import { logger } from '../logger.js';
 
 function withLogging<T>(
@@ -56,6 +57,17 @@ const updateItemSchema = {
   card_id: z.string().describe('卡片 ID'),
   content: z.string().optional(),
   completed: z.boolean().optional(),
+};
+
+const sendMessageSchema = {
+  text: z.string().describe('要发送的消息文本'),
+  room_id: z.string().optional().describe('聊天室 ID，默认 public'),
+};
+
+const listMessagesSchema = {
+  room_id: z.string().optional().describe('聊天室 ID，默认 public'),
+  limit: z.number().optional().describe('返回条数，默认 50，最大 200'),
+  before_id: z.number().optional().describe('分页游标：返回此 ID 之前的消息'),
 };
 
 export function registerAllTools(server: McpServer): void {
@@ -137,6 +149,24 @@ export function registerAllTools(server: McpServer): void {
     inputSchema: readPageSchema,
   }, withLogging('web/read_page', async (args) => {
     const text = await webReader.readPage(args as { url: string });
+    return { content: [{ type: 'text' as const, text }] };
+  }));
+
+  server.registerTool('chat/send_message', {
+    title: '发送聊天消息',
+    description: '在聊天室中发送一条文本消息，所有在线用户都能实时看到',
+    inputSchema: sendMessageSchema,
+  }, withLogging('chat/send_message', async (args) => {
+    const text = await chat.sendMessage(args as { text: string; room_id?: string });
+    return { content: [{ type: 'text' as const, text }] };
+  }));
+
+  server.registerTool('chat/list_messages', {
+    title: '查看聊天记录',
+    description: '获取聊天室的历史消息记录',
+    inputSchema: listMessagesSchema,
+  }, withLogging('chat/list_messages', async (args) => {
+    const text = await chat.listMessages(args as { room_id?: string; limit?: number; before_id?: number });
     return { content: [{ type: 'text' as const, text }] };
   }));
 }

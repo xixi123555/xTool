@@ -77,8 +77,10 @@ npm start
 | `todo/create_item` | 在卡片下创建待办项 |
 | `todo/update_item` | 更新待办项（含完成状态） |
 | `web/read_page` | 读取网页正文内容 |
+| `chat/send_message` | 在聊天室发送文本消息 |
+| `chat/list_messages` | 查询聊天室历史消息 |
 
-> 所有需要认证的操作（记账、待办、网页阅读）支持两种携带方式：`Authorization: Bearer <token>` 或 `mcp-key: <mcp_key>`。
+> 所有需要认证的操作（记账、待办、网页阅读、聊天）支持两种携带方式：`Authorization: Bearer <token>` 或 `mcp-key: <mcp_key>`。
 
 ## Cursor 配置
 

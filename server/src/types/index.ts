@@ -101,3 +101,22 @@ export interface QueryResult {
   affectedRows?: number;
 }
 
+// 聊天消息 part 类型
+export interface ChatMessagePart {
+  type: 'text' | 'image';
+  text?: string;
+  image_url?: string;
+  mime_type?: string;
+}
+
+// 聊天消息接口
+export interface ChatMessage {
+  id: number;
+  room_id: string;
+  user_id: number;
+  content_json: ChatMessagePart[];
+  created_at?: Date;
+  username?: string;
+  avatar?: string | null;
+}
+

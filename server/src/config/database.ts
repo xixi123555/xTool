@@ -249,6 +249,20 @@ export async function initDatabase(): Promise<void> {
       );
     }
 
+    // 创建聊天消息表
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS chat_messages (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        room_id VARCHAR(100) NOT NULL DEFAULT 'public' COMMENT '聊天室ID，默认公共聊天室',
+        user_id INT NOT NULL COMMENT '发送者',
+        content_json JSON NOT NULL COMMENT '消息内容 parts 结构，如 [{"type":"text","text":"hello"}]',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        INDEX idx_room_id (room_id),
+        INDEX idx_created_at (created_at)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
     console.log('数据库表初始化成功');
   } catch (error) {
     console.error('数据库初始化失败:', error);

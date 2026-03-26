@@ -30,6 +30,9 @@ const BookkeepingPanel = lazy(() =>
 const VideoToGifPanel = lazy(() =>
   import('../page/video-to-gif/VideoToGifPanel').then(m => ({ default: m.VideoToGifPanel }))
 );
+const ChatRoomPanel = lazy(() =>
+  import('../page/chat-room/ChatRoomPanel').then(m => ({ default: m.ChatRoomPanel }))
+);
 
 export interface RouteConfig {
   path: string;
@@ -123,6 +126,14 @@ export const routes: RouteConfig[] = [
     icon: '🎬',
     permissionKey: '',
     isShowForGuest: true,
+  },
+  {
+    path: '/chat-room',
+    element: <ChatRoomPanel />,
+    label: '聊天室',
+    icon: '💬',
+    permissionKey: '',
+    isShowForGuest: false,
   },
 ];
 
