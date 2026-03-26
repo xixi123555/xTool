@@ -16,7 +16,7 @@
     "dist": "yarn build && electron-builder --config electron-builder.yml",
     "lint": "eslint \"electron/src/**/*.ts\" \"renderer/src/**/*.{ts,tsx}\"",
     "start:server": "cd server && yarn build && yarn start",
-    "start:mcp": "cd xtool-mcp yarn dev",
+    "start:mcp": "cd xtool-mcp && yarn dev",
     "start:all": "concurrently \"yarn start:server\" \"yarn start:mcp\" \"yarn dev\""
   },
   "devDependencies": {
