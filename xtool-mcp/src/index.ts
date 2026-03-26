@@ -1,39 +1,44 @@
 #!/usr/bin/env node
 /**
- * xTool MCP Server 入口 - stdio 传输
+ * xTool MCP Server 入口 - Streamable HTTP 传输
  */
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { registerAllTools } from './tools/index.js';
+import { config, hasEnvToken, hasEnvDifyKey } from './config.js';
 import { logger } from './logger.js';
-import { config, hasAuth, hasWebReader } from './config.js';
+import { createStreamableHttpApp, shutdownAllTransports } from './streamableHttpApp.js';
 
 async function main(): Promise<void> {
-  logger.info('xTool MCP Server 启动中', {
+  logger.info('xTool MCP Server (HTTP) 启动中', {
     serverUrl: config.apiBaseUrl,
-    hasAuth: hasAuth(),
-    hasWebReader: hasWebReader(),
+    httpPort: config.httpPort,
+    httpHost: config.httpHost,
+    httpPath: config.httpPath,
+    hasEnvToken: hasEnvToken(),
+    hasEnvDifyKey: hasEnvDifyKey(),
   });
+  logger.info('config', config);
 
-  const server = new McpServer(
-    {
-      name: 'xtool',
-      version: '1.0.0',
-    },
-    {
-      capabilities: {
-        tools: {},
-      },
-    }
-  );
+  const app = createStreamableHttpApp();
 
-  registerAllTools(server);
-  logger.info('MCP 工具注册完成，连接 stdio 传输');
-
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  logger.info('xTool MCP Server 已就绪，等待请求');
+  app.listen(config.httpPort, config.httpHost, () => {
+    logger.info(
+      `xTool MCP Server 已就绪 http://${config.httpHost}:${config.httpPort}${config.httpPath}`,
+    );
+  });
 }
+
+process.on('SIGINT', async () => {
+  logger.info('收到 SIGINT，正在关闭...');
+  await shutdownAllTransports();
+  logger.info('关闭完成');
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  logger.info('收到 SIGTERM，正在关闭...');
+  await shutdownAllTransports();
+  logger.info('关闭完成');
+  process.exit(0);
+});
 
 main().catch((err) => {
   logger.error('xTool MCP Server 启动失败:', err);

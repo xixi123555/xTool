@@ -2,8 +2,8 @@
  * 网页阅读器工具 - 使用 Dify API 读取网页正文
  */
 import { z } from 'zod';
-import { config, hasAuth } from '../config.js';
-import { apiGet } from '../client/xtool-api.js';
+import { config } from '../config.js';
+import { apiGet, hasEffectiveAuth } from '../client/xtool-api.js';
 import { logger } from '../logger.js';
 
 const DIFY_API_URL = 'https://api.dify.ai/v1/workflows/run';
@@ -14,7 +14,7 @@ const readPageSchema = z.object({
 
 async function getDifyApiKey(): Promise<string> {
   if (config.difyApiKey) return config.difyApiKey;
-  if (hasAuth()) {
+  if (hasEffectiveAuth()) {
     const res = await apiGet<{ success: boolean; appKey?: { app_key: string }; error?: string }>(
       '/appkey/get/web_reader'
     );

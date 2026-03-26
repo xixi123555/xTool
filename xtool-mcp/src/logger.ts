@@ -1,5 +1,5 @@
 /**
- * 日志工具 - 输出到 stderr，避免干扰 MCP stdio 协议
+ * 日志工具 - 输出到 stderr
  */
 const PREFIX = '[xtool-mcp]';
 

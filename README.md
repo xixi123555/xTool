@@ -170,7 +170,7 @@ yarn dist
 
 ## MCP 服务
 
-xTool 提供独立的 MCP (Model Context Protocol) 服务，供 Cursor、Claude 等 AI 客户端调用记账、待办、网页阅读等功能。
+xTool 提供独立的 MCP (Model Context Protocol) 服务，通过 **Streamable HTTP** 协议对外暴露远程 MCP 端点，供 Cursor、Claude Desktop 等 AI 客户端调用记账、待办、网页阅读等功能。
 
 ### 快速开始
 
@@ -178,15 +178,33 @@ xTool 提供独立的 MCP (Model Context Protocol) 服务，供 Cursor、Claude 
 cd xtool-mcp
 npm install
 npm run build
+npm start
 ```
+
+启动后 MCP 端点默认运行在 `http://0.0.0.0:5197/mcp`。
 
 ### 配置
 
-复制 `xtool-mcp/.env.example` 为 `.env`，配置 `XTOOL_SERVER_URL`、`XTOOL_JWT_TOKEN`（从 xTool 设置 -> 应用配置 -> 主题设置下方生成的 `mcp_key`）。
+复制 `xtool-mcp/.env.example` 为 `.env`，配置 `XTOOL_SERVER_URL`、`MCP_HTTP_PORT` 及 `XTOOL_JWT_TOKEN`（从 xTool 设置 -> 应用配置 -> 主题设置下方生成的 `mcp_key`）。
 
 ### Cursor 集成
 
-在 Cursor 的 MCP 设置中，将 xtool-mcp 添加为 MCP 服务器，详见 [xtool-mcp/README.md](xtool-mcp/README.md)。
+在 Cursor 的 MCP 配置中通过 URL 接入：
+
+```json
+{
+  "mcpServers": {
+    "xtool": {
+      "url": "http://localhost:5197/mcp",
+      "headers": {
+        "Authorization": "Bearer <你的 mcp_key>"
+      }
+    }
+  }
+}
+```
+
+远程部署时将地址替换为服务器域名（建议 HTTPS）。详见 [xtool-mcp/README.md](xtool-mcp/README.md)。
 
 ---
 

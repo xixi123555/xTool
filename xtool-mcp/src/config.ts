@@ -20,19 +20,33 @@ export const config = {
     return base.endsWith('/api') ? base : `${base}/api`;
   },
 
-  /** JWT Token，用于调用需认证的接口 */
+  /** JWT Token / MCP Key（后备默认 Bearer） */
   jwtToken: getEnv('XTOOL_JWT_TOKEN'),
 
   /** Dify API Key，网页阅读器专用（可选） */
   difyApiKey: getEnv('DIFY_API_KEY'),
+
+  /** HTTP 服务端口 */
+  httpPort: Number(getEnv('MCP_HTTP_PORT', '5197')) || 5197,
+
+  /** HTTP 监听地址 */
+  httpHost: getEnv('MCP_HTTP_HOST', '127.0.0.1'),
+
+  /** MCP 路由路径 */
+  httpPath: getEnv('MCP_HTTP_PATH', '/mcp') || '/mcp',
+
+  /** 允许的 Host 列表（公网反代安全） */
+  allowedHosts: getEnv('MCP_ALLOWED_HOSTS')
+    ? getEnv('MCP_ALLOWED_HOSTS').split(',').map((h) => h.trim()).filter(Boolean)
+    : undefined,
 };
 
-/** 是否已配置 xTool 认证（记账、待办等需要） */
-export function hasAuth(): boolean {
+/** 环境变量是否配置了 xTool 后备 Token */
+export function hasEnvToken(): boolean {
   return Boolean(config.jwtToken);
 }
 
-/** 是否可用的网页阅读器（Dify Key 或可从 appkey 获取） */
-export function hasWebReader(): boolean {
-  return Boolean(config.difyApiKey) || hasAuth();
+/** 环境变量是否配置了 Dify Key */
+export function hasEnvDifyKey(): boolean {
+  return Boolean(config.difyApiKey);
 }
