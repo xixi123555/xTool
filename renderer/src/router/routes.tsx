@@ -1,23 +1,44 @@
-import { ReactNode } from 'react';
-import { ClipboardHistoryPanel } from '../page/clipboard-history/ClipboardHistoryPanel';
-import { JsonFormatterPanel } from '../page/json-formatter/JsonFormatterPanel';
-import { ScreenshotHistoryPanel } from '../page/screenshot-history/ScreenshotHistoryPanel';
-import { TodoListPanel } from '../page/todo-list/TodoListPanel';
-import { TranslationPanel } from '../page/translation/TranslationPanel';
-import { WebReaderPanel } from '../page/web-reader/WebReaderPanel';
-import { ComparisonPanel } from '../page/comparison/ComparisonPanel';
-import { StockPanel } from '../page/stock/StockPanel';
-import { BookkeepingPanel } from '../page/bookkeeping/BookkeepingPanel';
-import { VideoToGifPanel } from '../page/video-to-gif/VideoToGifPanel';
+import { ReactNode, lazy } from 'react';
+
+const ClipboardHistoryPanel = lazy(() =>
+  import('../page/clipboard-history/ClipboardHistoryPanel').then(m => ({ default: m.ClipboardHistoryPanel }))
+);
+const JsonFormatterPanel = lazy(() =>
+  import('../page/json-formatter/JsonFormatterPanel').then(m => ({ default: m.JsonFormatterPanel }))
+);
+const ScreenshotHistoryPanel = lazy(() =>
+  import('../page/screenshot-history/ScreenshotHistoryPanel').then(m => ({ default: m.ScreenshotHistoryPanel }))
+);
+const TodoListPanel = lazy(() =>
+  import('../page/todo-list/TodoListPanel').then(m => ({ default: m.TodoListPanel }))
+);
+const TranslationPanel = lazy(() =>
+  import('../page/translation/TranslationPanel').then(m => ({ default: m.TranslationPanel }))
+);
+const WebReaderPanel = lazy(() =>
+  import('../page/web-reader/WebReaderPanel').then(m => ({ default: m.WebReaderPanel }))
+);
+const ComparisonPanel = lazy(() =>
+  import('../page/comparison/ComparisonPanel').then(m => ({ default: m.ComparisonPanel }))
+);
+const StockPanel = lazy(() =>
+  import('../page/stock/StockPanel').then(m => ({ default: m.StockPanel }))
+);
+const BookkeepingPanel = lazy(() =>
+  import('../page/bookkeeping/BookkeepingPanel').then(m => ({ default: m.BookkeepingPanel }))
+);
+const VideoToGifPanel = lazy(() =>
+  import('../page/video-to-gif/VideoToGifPanel').then(m => ({ default: m.VideoToGifPanel }))
+);
 
 export interface RouteConfig {
   path: string;
   element: ReactNode;
   label: string;
   icon: ReactNode;
-  permissionKey?: string; // 权限key，现在都设为空，方便后续扩展
-  requiresAuth?: boolean; // 是否需要认证（用于过滤显示）
-  isShowForGuest?: boolean; // 是否对路人身份登录的用户展示，默认为 true
+  permissionKey?: string;
+  requiresAuth?: boolean;
+  isShowForGuest?: boolean;
 }
 
 export const routes: RouteConfig[] = [

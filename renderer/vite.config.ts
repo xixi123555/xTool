@@ -169,8 +169,35 @@ export default defineConfig({
     assetsDir: 'assets',
     rollupOptions: {
       output: {
-        // 确保资源使用相对路径
         assetFileNames: 'assets/[name].[ext]',
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('monaco-editor') || id.includes('@monaco-editor')) {
+              return 'vendor-monaco';
+            }
+            if (id.includes('echarts') || id.includes('zrender')) {
+              return 'vendor-echarts';
+            }
+            if (id.includes('react-dom')) {
+              return 'vendor-react-dom';
+            }
+            if (id.includes('react-router') || id.includes('@remix-run')) {
+              return 'vendor-router';
+            }
+            if (id.includes('framer-motion')) {
+              return 'vendor-framer-motion';
+            }
+            if (id.includes('react-diff-viewer')) {
+              return 'vendor-diff-viewer';
+            }
+            return 'vendor';
+          }
+          // 按页面模块分包
+          const pageMatch = id.match(/src\/page\/([\w-]+)\//);
+          if (pageMatch) {
+            return `page-${pageMatch[1]}`;
+          }
+        },
       },
     },
   },
