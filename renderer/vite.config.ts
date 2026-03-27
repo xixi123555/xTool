@@ -170,41 +170,6 @@ export default defineConfig({
     rollupOptions: {
       output: {
         assetFileNames: 'assets/[name].[ext]',
-        manualChunks(id) {
-          if (id.includes('node_modules')) {
-            // React 相关依赖统一打进一个 chunk，避免跨 chunk 初始化顺序问题
-            if (
-              id.includes('/react/') ||
-              id.includes('\\react\\') ||
-              id.includes('react-dom') ||
-              id.includes('/scheduler/') ||
-              id.includes('\\scheduler\\')
-            ) {
-              return 'vendor-react';
-            }
-            if (id.includes('monaco-editor') || id.includes('@monaco-editor')) {
-              return 'vendor-monaco';
-            }
-            if (id.includes('echarts') || id.includes('zrender')) {
-              return 'vendor-echarts';
-            }
-            if (id.includes('react-router') || id.includes('@remix-run')) {
-              return 'vendor-router';
-            }
-            if (id.includes('framer-motion')) {
-              return 'vendor-framer-motion';
-            }
-            if (id.includes('react-diff-viewer')) {
-              return 'vendor-diff-viewer';
-            }
-            return 'vendor';
-          }
-          // 按页面模块分包
-          const pageMatch = id.match(/src\/page\/([\w-]+)\//);
-          if (pageMatch) {
-            return `page-${pageMatch[1]}`;
-          }
-        },
       },
     },
   },
