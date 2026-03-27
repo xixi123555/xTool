@@ -4,6 +4,13 @@
 import pool from '../config/database.js';
 import { ChatMessage, ChatMessagePart } from '../types/index.js';
 
+/** LIMIT 不能安全用作部分 MySQL/mysqld 下的 stmt 占位符，需内联整数 */
+function clampLimit(limit: number): number {
+  const n = Math.floor(Number(limit));
+  if (!Number.isFinite(n) || n < 1) return 50;
+  return Math.min(n, 500);
+}
+
 export class ChatMessageModel {
   static async create(
     roomId: string,
@@ -47,13 +54,37 @@ export class ChatMessageModel {
                WHERE m.room_id = ?`;
     const params: any[] = [roomId];
 
-    if (beforeId) {
+    if (beforeId != null && beforeId !== undefined) {
       sql += ' AND m.id < ?';
-      params.push(beforeId);
+      params.push(Number(beforeId));
     }
 
-    sql += ' ORDER BY m.id DESC LIMIT ?';
-    params.push(limit);
+    const lim = clampLimit(limit);
+    sql += ` ORDER BY m.id DESC LIMIT ${lim}`;
+
+    const [rows] = (await pool.execute(sql, params)) as [any[], any];
+    return rows.map((r: any) => this.formatRow(r)).reverse();
+  }
+
+  /** 不限房间，按全局消息 id 分页（用于聊天室查看全部历史含其他 room_id） */
+  static async getMessagesAllRooms(
+    limit: number = 50,
+    beforeId?: number
+  ): Promise<ChatMessage[]> {
+    let sql = `SELECT m.id, m.room_id, m.user_id, m.content_json, m.created_at,
+                      u.username, u.avatar
+               FROM chat_messages m
+               LEFT JOIN users u ON m.user_id = u.id
+               WHERE 1=1`;
+    const params: any[] = [];
+
+    if (beforeId != null && beforeId !== undefined) {
+      sql += ' AND m.id < ?';
+      params.push(Number(beforeId));
+    }
+
+    const lim = clampLimit(limit);
+    sql += ` ORDER BY m.id DESC LIMIT ${lim}`;
 
     const [rows] = (await pool.execute(sql, params)) as [any[], any];
     return rows.map((r: any) => this.formatRow(r)).reverse();

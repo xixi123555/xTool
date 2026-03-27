@@ -1,7 +1,7 @@
 /**
  * 聊天室页面 — 实时通讯主入口
  */
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { MessageList } from '../../components/chat/MessageList';
 import { Composer } from '../../components/chat/Composer';
@@ -17,7 +17,9 @@ import {
 } from '../../api/chatSocket';
 import { showToast } from '../../components/toast/Toast';
 
-const PAGE_SIZE = 50;
+/** 单次拉取条数（服务端最大 200）；合并全部房间历史 */
+const PAGE_SIZE = 100;
+const HISTORY_OPTS = { allRooms: true } as const;
 
 export function ChatRoomPanel() {
   const user = useAppStore((s) => s.user);
@@ -28,7 +30,6 @@ export function ChatRoomPanel() {
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const initialLoaded = useRef(false);
 
   useEffect(() => {
     if (!token) return;
@@ -57,11 +58,10 @@ export function ChatRoomPanel() {
   }, [token]);
 
   useEffect(() => {
-    if (!token || initialLoaded.current) return;
-    initialLoaded.current = true;
+    if (!token) return;
 
     setLoading(true);
-    fetchChatHistory('public', PAGE_SIZE)
+    fetchChatHistory('public', PAGE_SIZE, undefined, HISTORY_OPTS)
       .then((msgs) => {
         setMessages(msgs);
         setHasMore(msgs.length >= PAGE_SIZE);
@@ -77,7 +77,7 @@ export function ChatRoomPanel() {
     if (loading || !hasMore || messages.length === 0) return;
     const oldest = messages[0];
     setLoading(true);
-    fetchChatHistory('public', PAGE_SIZE, oldest.id)
+    fetchChatHistory('public', PAGE_SIZE, oldest.id, HISTORY_OPTS)
       .then((older) => {
         if (older.length < PAGE_SIZE) setHasMore(false);
         setMessages((prev) => [...older, ...prev]);
@@ -104,7 +104,9 @@ export function ChatRoomPanel() {
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-white">
         <div>
           <h2 className="text-lg font-semibold text-gray-800">聊天室</h2>
-          <p className="text-xs text-gray-400">公共聊天室，实时互动</p>
+          <p className="text-xs text-gray-400">
+            查看全部房间历史记录（含他人与离线期间消息）
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <span

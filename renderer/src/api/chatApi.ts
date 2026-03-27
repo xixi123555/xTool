@@ -29,9 +29,15 @@ interface MessagesResponse {
 export async function fetchChatHistory(
   roomId: string = 'public',
   limit: number = 50,
-  beforeId?: number
+  beforeId?: number,
+  options?: { allRooms?: boolean }
 ): Promise<ChatMessage[]> {
-  const params = new URLSearchParams({ room_id: roomId, limit: String(limit) });
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (options?.allRooms) {
+    params.set('all_rooms', '1');
+  } else {
+    params.set('room_id', roomId);
+  }
   if (beforeId) params.set('before_id', String(beforeId));
 
   const res = await get<MessagesResponse>(`/chat/messages?${params.toString()}`);

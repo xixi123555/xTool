@@ -17,13 +17,22 @@ router.use((req, res, next) => {
  */
 router.get('/messages', async (req: Request, res: Response) => {
   try {
-    const roomId = (req.query.room_id as string) || 'public';
     const limit = Math.min(Number(req.query.limit) || 50, 200);
     const beforeId = req.query.before_id
       ? Number(req.query.before_id)
       : undefined;
+    const allRooms =
+      req.query.all_rooms === '1' ||
+      req.query.all_rooms === 'true' ||
+      req.query.room_id === '__all__';
 
-    const messages = await ChatService.getHistory(roomId, limit, beforeId);
+    const messages = allRooms
+      ? await ChatService.getHistoryAllRooms(limit, beforeId)
+      : await ChatService.getHistory(
+          (req.query.room_id as string) || 'public',
+          limit,
+          beforeId
+        );
     res.json({ success: true, messages });
   } catch (error) {
     console.error('获取聊天消息错误:', error);
@@ -53,7 +62,7 @@ router.post('/send', async (req: Request, res: Response) => {
 
     const io = req.app.locals.io;
     if (io) {
-      io.to(roomId).emit('chat:new_message', msg);
+      io.emit('chat:new_message', msg);
     }
 
     res.json({ success: true, message: msg });

@@ -95,7 +95,8 @@ export function setupChatGateway(httpServer: HTTPServer): SocketIOServer {
             userId: user.id,
             roomId,
           });
-          io.to(roomId).emit('chat:new_message', msg);
+          // 广播到所有在线客户端，便于客户端聚合展示各 room 消息
+          io.emit('chat:new_message', msg);
         } catch (err) {
           chatLog('message_error', { userId: user.id, error: String(err) });
           socket.emit('chat:error', { message: '发送失败' });

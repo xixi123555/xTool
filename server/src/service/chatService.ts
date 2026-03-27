@@ -31,4 +31,12 @@ export class ChatService {
   ): Promise<ChatMessage[]> {
     return ChatMessageModel.getMessages(roomId, limit, beforeId);
   }
+
+  /** 全部聊天室合并时间线（同页游标 beforeId 为全局消息 id） */
+  static async getHistoryAllRooms(
+    limit: number = 50,
+    beforeId?: number
+  ): Promise<ChatMessage[]> {
+    return ChatMessageModel.getMessagesAllRooms(limit, beforeId);
+  }
 }

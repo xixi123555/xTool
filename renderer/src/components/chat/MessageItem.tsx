@@ -42,8 +42,13 @@ export function MessageItem({ message, isMine }: MessageItemProps) {
     <div className={`flex gap-2 px-3 py-1 ${isMine ? 'flex-row-reverse' : 'flex-row'}`}>
       {avatar}
       <div className={`flex flex-col max-w-[70%] ${isMine ? 'items-end' : 'items-start'}`}>
-        <div className="flex items-center gap-1.5 mb-0.5">
+        <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
           <span className="text-xs text-gray-400">{message.username}</span>
+          {message.room_id && message.room_id !== 'public' && (
+            <span className="text-[10px] text-gray-400 bg-gray-100 px-1 rounded">
+              {message.room_id}
+            </span>
+          )}
           <span className="text-xs text-gray-300">{formatTime(message.created_at)}</span>
         </div>
         <div
