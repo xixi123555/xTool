@@ -9,3 +9,5 @@ yarn-error.log
 coverage
 release
 uploads/
+server/.env
+xtool-mcp/.env
