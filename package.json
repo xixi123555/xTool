@@ -12,12 +12,14 @@
     "dev": "concurrently \"yarn workspace devtools-suite-renderer dev\" \"yarn workspace devtools-suite-electron dev\"",
     "dev:pro": "yarn workspace devtools-suite-electron dev:pro",
     "build": "yarn workspace devtools-suite-renderer build && yarn workspace devtools-suite-electron build",
+    "build:pro": "yarn build&& sudo cp -r /root/.nvm/xTool/renderer/dist/* /var/www/html/xTool/",
     "postinstall": "electron-builder install-app-deps",
     "dist": "yarn build && electron-builder --config electron-builder.yml",
     "lint": "eslint \"electron/src/**/*.ts\" \"renderer/src/**/*.{ts,tsx}\"",
     "start:server": "cd server && yarn build && yarn start",
     "start:mcp": "cd xtool-mcp && yarn dev",
-    "start:all": "concurrently \"yarn start:server\" \"yarn start:mcp\" \"yarn dev\""
+    "start:all": "concurrently \"yarn start:server\" \"yarn start:mcp\" \"yarn dev\"",
+    "start:all:pro": "yarn build:pro && pm2 stop xTool-mcp xTool-server && pm2 start ecosystem.config.js"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
