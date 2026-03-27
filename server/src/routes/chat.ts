@@ -42,23 +42,24 @@ router.get('/messages', async (req: Request, res: Response) => {
 
 /**
  * POST /api/chat/send
- * body: { text: string, room_id?: string }
+ * body: { text?: string, parts?: ChatMessagePart[], room_id?: string }
  */
 router.post('/send', async (req: Request, res: Response) => {
   const typedReq = req as unknown as AuthenticatedRequest;
   try {
-    const { text, room_id } = typedReq.body;
-    if (!text?.trim()) {
+    const { text, parts, room_id } = typedReq.body;
+    const trimmedText = text?.trim();
+    const normalizedParts = ChatService.normalizeParts(parts || []);
+    if (!trimmedText && normalizedParts.length === 0) {
       res.status(400).json({ error: '消息内容不能为空' });
       return;
     }
 
     const roomId = room_id || 'public';
-    const msg = await ChatService.sendMessage(
-      typedReq.user.id,
-      text.trim(),
-      roomId
-    );
+    const msg =
+      normalizedParts.length > 0
+        ? await ChatService.sendRichMessage(typedReq.user.id, normalizedParts, roomId)
+        : await ChatService.sendMessage(typedReq.user.id, trimmedText!, roomId);
 
     const io = req.app.locals.io;
     if (io) {

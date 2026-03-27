@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { Sidebar } from './components/sidebar/Sidebar';
 import { MenuDrawer } from './components/sidebar/MenuDrawer';
 import { MenuFab } from './components/sidebar/MenuFab';
@@ -19,6 +19,7 @@ const MENU_OPEN_KEY = 'xtool_menu_open';
 // 主应用内容组件（需要登录）
 function MainApp() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, token, setUser, setToken, shortcuts, setShortcuts, setAppConfig, appConfig } = useAppStore();
   const [isInitialized, setIsInitialized] = useState(false);
   const [selectorOpen, setSelectorOpen] = useState(false);
@@ -150,9 +151,11 @@ function MainApp() {
     return <Navigate to="/login" replace />;
   }
 
+  const isChatRoom = location.pathname === '/chat-room';
+
   return (
     <div className="flex h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-white text-slate-800">
-      <main className="flex flex-1 flex-col gap-4 p-6 overflow-hidden min-w-0">
+      <main className={`main-app-shell flex min-w-0 flex-1 flex-col gap-4 overflow-hidden p-6 ${isChatRoom ? 'mobile-chat-main' : ''}`}>
         <AppRouter />
       </main>
 

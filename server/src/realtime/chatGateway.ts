@@ -7,7 +7,7 @@ import jwt from 'jsonwebtoken';
 import { User } from '../models/User.js';
 import { McpKey } from '../models/McpKey.js';
 import { ChatService } from '../service/chatService.js';
-import { User as UserType } from '../types/index.js';
+import { User as UserType, ChatMessagePart } from '../types/index.js';
 
 const DEFAULT_ROOM = 'public';
 
@@ -83,13 +83,17 @@ export function setupChatGateway(httpServer: HTTPServer): SocketIOServer {
 
     socket.on(
       'chat:send',
-      async (payload: { text?: string; roomId?: string }) => {
+      async (payload: { text?: string; roomId?: string; parts?: ChatMessagePart[] }) => {
         const text = payload.text?.trim();
-        if (!text) return;
+        const parts = ChatService.normalizeParts(payload.parts || []);
+        if (!text && parts.length === 0) return;
 
         const roomId = payload.roomId || DEFAULT_ROOM;
         try {
-          const msg = await ChatService.sendMessage(user.id, text, roomId);
+          const msg =
+            parts.length > 0
+              ? await ChatService.sendRichMessage(user.id, parts, roomId)
+              : await ChatService.sendMessage(user.id, text!, roomId);
           chatLog('message_sent', {
             messageId: msg.id,
             userId: user.id,

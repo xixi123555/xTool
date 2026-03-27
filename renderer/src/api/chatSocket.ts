@@ -2,7 +2,7 @@
  * 聊天室 Socket.IO 客户端 — 管理连接、事件与重连
  */
 import { io, Socket } from 'socket.io-client';
-import type { ChatMessage } from './chatApi';
+import type { ChatMessage, ChatMessagePart } from './chatApi';
 
 const SOCKET_URL = import.meta.env.PROD
   ? 'http://39.105.137.213:5198'
@@ -75,8 +75,18 @@ export function disconnectChat(): void {
   socket = null;
 }
 
-export function sendChatMessage(text: string, roomId?: string): void {
-  socket?.emit('chat:send', { text, roomId });
+export interface SendChatPayload {
+  text?: string;
+  roomId?: string;
+  parts?: ChatMessagePart[];
+}
+
+export function sendChatMessage(payload: string | SendChatPayload, roomId?: string): void {
+  if (typeof payload === 'string') {
+    socket?.emit('chat:send', { text: payload, roomId });
+    return;
+  }
+  socket?.emit('chat:send', payload);
 }
 
 export function onNewMessage(handler: MessageHandler): () => void {

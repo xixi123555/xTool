@@ -103,10 +103,13 @@ export interface QueryResult {
 
 // 聊天消息 part 类型
 export interface ChatMessagePart {
-  type: 'text' | 'image';
+  type: 'text' | 'image' | 'file';
   text?: string;
   image_url?: string;
   mime_type?: string;
+  file_url?: string;
+  file_name?: string;
+  file_size?: number;
 }
 
 // 聊天消息接口
@@ -119,4 +122,3 @@ export interface ChatMessage {
   username?: string;
   avatar?: string | null;
 }
-

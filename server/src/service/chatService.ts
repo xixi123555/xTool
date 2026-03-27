@@ -21,7 +21,11 @@ export class ChatService {
     parts: ChatMessagePart[],
     roomId: string = DEFAULT_ROOM
   ): Promise<ChatMessage> {
-    return ChatMessageModel.create(roomId, userId, parts);
+    const normalized = this.normalizeParts(parts);
+    if (normalized.length === 0) {
+      throw new Error('消息内容不能为空');
+    }
+    return ChatMessageModel.create(roomId, userId, normalized);
   }
 
   static async getHistory(
@@ -38,5 +42,35 @@ export class ChatService {
     beforeId?: number
   ): Promise<ChatMessage[]> {
     return ChatMessageModel.getMessagesAllRooms(limit, beforeId);
+  }
+
+  static normalizeParts(parts: unknown): ChatMessagePart[] {
+    if (!Array.isArray(parts)) return [];
+    const normalized: ChatMessagePart[] = [];
+    for (const part of parts) {
+      if (part?.type === 'text') {
+        const text = (part.text || '').trim();
+        if (text) normalized.push({ type: 'text', text });
+        continue;
+      }
+      if (part?.type === 'image' && part.image_url) {
+        normalized.push({
+          type: 'image',
+          image_url: part.image_url,
+          mime_type: part.mime_type,
+        });
+        continue;
+      }
+      if (part?.type === 'file' && part.file_url) {
+        normalized.push({
+          type: 'file',
+          file_url: part.file_url,
+          file_name: part.file_name,
+          file_size: part.file_size,
+          mime_type: part.mime_type,
+        });
+      }
+    }
+    return normalized;
   }
 }

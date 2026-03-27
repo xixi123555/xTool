@@ -23,12 +23,25 @@ export function MessageList({
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const shouldAutoScroll = useRef(true);
+  const loadingMoreRef = useRef(false);
+  const prevScrollHeightRef = useRef(0);
+  const prevScrollTopRef = useRef(0);
 
   const scrollToBottom = useCallback(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
 
   useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    if (loadingMoreRef.current) {
+      const delta = el.scrollHeight - prevScrollHeightRef.current;
+      el.scrollTop = prevScrollTopRef.current + delta;
+      loadingMoreRef.current = false;
+      return;
+    }
+
     if (shouldAutoScroll.current) {
       scrollToBottom();
     }
@@ -42,6 +55,9 @@ export function MessageList({
     shouldAutoScroll.current = isAtBottom;
 
     if (el.scrollTop < 60 && hasMore && !loading && onLoadMore) {
+      loadingMoreRef.current = true;
+      prevScrollHeightRef.current = el.scrollHeight;
+      prevScrollTopRef.current = el.scrollTop;
       onLoadMore();
     }
   };
@@ -49,17 +65,17 @@ export function MessageList({
   return (
     <div
       ref={containerRef}
-      className="flex-1 overflow-y-auto py-3 space-y-1 bg-gray-50"
+      className="chat-message-list h-full space-y-2 overflow-y-auto bg-transparent px-4 py-4"
       onScroll={handleScroll}
     >
       {loading && (
-        <div className="text-center text-xs text-gray-400 py-2">加载中...</div>
+        <div className="py-2 text-center text-xs text-slate-400">加载中...</div>
       )}
       {!hasMore && messages.length > 0 && (
-        <div className="text-center text-xs text-gray-300 py-2">已显示全部消息</div>
+        <div className="py-2 text-center text-xs text-slate-300">已显示全部消息</div>
       )}
       {messages.length === 0 && !loading && (
-        <div className="text-center text-gray-400 text-sm py-10">
+        <div className="py-12 text-center text-sm text-slate-400">
           暂无消息，发一条开始聊天吧
         </div>
       )}

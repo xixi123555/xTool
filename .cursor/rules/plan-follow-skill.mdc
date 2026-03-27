@@ -1,0 +1,6 @@
+---
+name: Plan模式必须使用genplan技能
+alwaysApply: true
+---
+当用户使用 Plan 模式或要求生成计划时，
+必须调用 skill: genplan 执行完整流程

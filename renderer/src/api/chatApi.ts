@@ -4,10 +4,13 @@
 import { get } from '../utils/http';
 
 export interface ChatMessagePart {
-  type: 'text' | 'image';
+  type: 'text' | 'image' | 'file';
   text?: string;
   image_url?: string;
   mime_type?: string;
+  file_url?: string;
+  file_name?: string;
+  file_size?: number;
 }
 
 export interface ChatMessage {
