@@ -128,6 +128,8 @@ function waitForPortRelease(port: number, maxAttempts: number = 10, delay: numbe
 }
 
 export default defineConfig({
+  // 使用相对路径，确保打包后资源能正确加载
+  base: './',
   plugins: [
     react(),
     {
@@ -164,8 +166,6 @@ export default defineConfig({
   ],
   build: {
     outDir: 'dist',
-    // 使用相对路径，确保打包后资源能正确加载
-    base: './',
     assetsDir: 'assets',
     rollupOptions: {
       output: {
@@ -213,8 +213,12 @@ export default defineConfig({
     strictPort: true, // 端口被占用时直接失败，而不是尝试其他端口
   },
   resolve: {
+    dedupe: ['react', 'react-dom', 'scheduler'],
     alias: {
       '@': path.resolve(__dirname, 'src'),
     },
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react/jsx-runtime', 'scheduler'],
   },
 });
