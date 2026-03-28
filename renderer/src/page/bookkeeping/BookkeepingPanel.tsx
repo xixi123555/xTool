@@ -228,12 +228,14 @@ function AddRecordForm({
   purposeHandlers,
   onAdd,
   onTypeChange,
+  onPurposeChange,
 }: {
   purposes: BookkeepingPurposeItem[];
   defaultPurpose: BookkeepingPurposeItem | undefined;
   purposeHandlers: PurposeHandlers;
   onAdd: (r: { purpose: string; description: string; amount: number; type: 'expense' | 'income'; files?: File[] }) => void;
   onTypeChange?: (t: 'expense' | 'income') => void;
+  onPurposeChange?: (purpose: string) => void;
 }) {
   const [purpose, setPurpose] = useState('');
   const [description, setDescription] = useState('');
@@ -244,6 +246,11 @@ function AddRecordForm({
   const [descriptionError, setDescriptionError] = useState(false);
   const [descriptionShake, setDescriptionShake] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+
+  const setPurposeWithNotify = useCallback((nextPurpose: string) => {
+    setPurpose(nextPurpose);
+    onPurposeChange?.(nextPurpose);
+  }, [onPurposeChange]);
 
   const amountRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -258,9 +265,9 @@ function AddRecordForm({
 
   useEffect(() => {
     if (defaultPurpose?.name && purpose === '') {
-      setPurpose(defaultPurpose.name);
+      setPurposeWithNotify(defaultPurpose.name);
     }
-  }, [defaultPurpose?.id, defaultPurpose?.name, purpose]);
+  }, [defaultPurpose?.id, defaultPurpose?.name, purpose, setPurposeWithNotify]);
 
   useEffect(() => {
     if (inputVisible && inputRef.current) inputRef.current.focus();
@@ -313,7 +320,7 @@ function AddRecordForm({
     const name = inputValue.trim();
     if (name) {
       await purposeHandlers.create(name);
-      setPurpose(name);
+      setPurposeWithNotify(name);
       setInputValue('');
     }
     setInputVisible(false);
@@ -353,10 +360,9 @@ function AddRecordForm({
             <ClosableTag
               key={p.id}
               selected={purpose === p.name}
-              onSelect={() => setPurpose(p.name)}
+              onSelect={() => setPurposeWithNotify(p.name)}
               onClose={() => purposeHandlers.delete(p)}
               isDefault={p.is_default === 1}
-              onSetDefault={p.is_default !== 1 ? () => purposeHandlers.setDefault(p.id) : undefined}
             >
               {p.name}
             </ClosableTag>
@@ -555,9 +561,18 @@ export function BookkeepingPanel() {
   const defaultPurpose = purposes.find((p) => p.is_default === 1);
 
   const [currentType, setCurrentType] = useState<'expense' | 'income'>('expense');
+  const [currentPurpose, setCurrentPurpose] = useState('');
   const [attachmentRecord, setAttachmentRecord] = useState<BookkeepingRecord | null>(null);
 
-  const filteredRecords = records.filter((r) => r.type === currentType);
+  useEffect(() => {
+    if (!currentPurpose && defaultPurpose?.name) {
+      setCurrentPurpose(defaultPurpose.name);
+    }
+  }, [defaultPurpose?.id, defaultPurpose?.name, currentPurpose]);
+
+  const filteredRecords = records.filter(
+    (r) => r.type === currentType && (!currentPurpose || r.purpose === currentPurpose)
+  );
   const groupedByDate = filteredRecords.reduce<Record<string, BookkeepingRecord[]>>((acc, r) => {
     const d = r.record_date;
     if (!acc[d]) acc[d] = [];
@@ -566,8 +581,7 @@ export function BookkeepingPanel() {
   }, {});
   const sortedDates = Object.keys(groupedByDate).sort((a, b) => b.localeCompare(a));
 
-  const totalIncome = records.filter((r) => r.type === 'income').reduce((sum, r) => sum + r.amount, 0);
-  const totalExpense = records.filter((r) => r.type === 'expense').reduce((sum, r) => sum + r.amount, 0);
+  const filteredTotal = filteredRecords.reduce((sum, r) => sum + r.amount, 0);
 
   if (loading) {
     return (
@@ -596,16 +610,19 @@ export function BookkeepingPanel() {
           }}
           onAdd={handleAdd}
           onTypeChange={setCurrentType}
+          onPurposeChange={setCurrentPurpose}
         />
 
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium text-slate-600">账单记录</h3>
+            <h3 className="text-sm font-medium text-slate-600">
+              账单记录{currentPurpose ? ` · ${currentPurpose}` : ''}
+            </h3>
             {records.length > 0 && (
               <div className="text-sm font-medium">
                 {currentType === 'expense'
-                  ? <span className="text-red-600">支出 ¥{totalExpense.toFixed(2)}</span>
-                  : <span className="text-green-600">收入 +¥{totalIncome.toFixed(2)}</span>
+                  ? <span className="text-red-600">支出 ¥{filteredTotal.toFixed(2)}</span>
+                  : <span className="text-green-600">收入 +¥{filteredTotal.toFixed(2)}</span>
                 }
               </div>
             )}
@@ -614,7 +631,7 @@ export function BookkeepingPanel() {
             <div className="py-8 text-center text-slate-400 text-sm">
               {filteredRecords.length === 0 && records.length === 0
                 ? '暂无记录，记一笔吧'
-                : `暂无${currentType === 'expense' ? '支出' : '收入'}记录`}
+                : `暂无${currentPurpose ? `「${currentPurpose}」` : ''}${currentType === 'expense' ? '支出' : '收入'}记录`}
             </div>
           ) : (
             <div className="space-y-4">
