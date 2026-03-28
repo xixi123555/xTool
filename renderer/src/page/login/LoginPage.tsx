@@ -13,6 +13,33 @@ import {
 } from '../../utils/loginHistory';
 import { AutoCompleteInput } from '../../components/login/AutoCompleteInput';
 
+const REMEMBER_PASSWORD_KEY = 'xtool_remember_password';
+
+interface RememberedCredential {
+  username: string;
+  password: string;
+}
+
+function getRememberedCredential(): RememberedCredential | null {
+  try {
+    const raw = localStorage.getItem(REMEMBER_PASSWORD_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<RememberedCredential>;
+    if (!parsed.username || !parsed.password) return null;
+    return { username: parsed.username, password: parsed.password };
+  } catch {
+    return null;
+  }
+}
+
+function setRememberedCredential(credential: RememberedCredential): void {
+  localStorage.setItem(REMEMBER_PASSWORD_KEY, JSON.stringify(credential));
+}
+
+function clearRememberedCredential(): void {
+  localStorage.removeItem(REMEMBER_PASSWORD_KEY);
+}
+
 export function LoginPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<'login' | 'register' | 'code-login'>('login');
@@ -24,6 +51,7 @@ export function LoginPage() {
   const [codeLoading, setCodeLoading] = useState(false);
   const [codeSent, setCodeSent] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [rememberPassword, setRememberPassword] = useState(false);
 
   // 自动联想相关状态
   const [usernameSuggestions, setUsernameSuggestions] = useState<string[]>([]);
@@ -34,6 +62,17 @@ export function LoginPage() {
   // 页面加载时自动填充上一次的登录信息
   useEffect(() => {
     (async () => {
+      if (mode === 'login') {
+        const remembered = getRememberedCredential();
+        if (remembered) {
+          setUsername(remembered.username);
+          setPassword(remembered.password);
+          setRememberPassword(true);
+          return;
+        }
+        setRememberPassword(false);
+      }
+
       const latestHistory = await getLatestLoginHistory(mode === 'code-login' ? 'code' : mode === 'register' ? 'register' : 'password');
       if (latestHistory) {
         if (mode === 'code-login') {
@@ -117,6 +156,18 @@ export function LoginPage() {
         localStorage.setItem('xtool_token', response.token);
         localStorage.setItem('xtool_user', JSON.stringify(response.user));
         localStorage.setItem('xtool_shortcuts', JSON.stringify(response.shortcuts || {}));
+
+        if (rememberPassword) {
+          setRememberedCredential({ username, password });
+        } else {
+          clearRememberedCredential();
+        }
+
+        saveLoginHistory({
+          username,
+          password: rememberPassword ? password : undefined,
+          loginType: 'password',
+        });
         
         // 加载应用配置
         try {
@@ -503,6 +554,16 @@ export function LoginPage() {
                 }}
               />
             </div>
+            <label className="flex items-center gap-2 text-sm text-slate-600 select-none">
+              <input
+                type="checkbox"
+                checked={rememberPassword}
+                onChange={(e) => setRememberPassword(e.target.checked)}
+                disabled={loading}
+                className="h-4 w-4 rounded border-slate-300 text-slate-700 focus:ring-slate-300"
+              />
+              记住密码
+            </label>
             <button
               type="submit"
               className="btn-primary w-full"
@@ -665,4 +726,3 @@ export function LoginPage() {
     </div>
   );
 }
-

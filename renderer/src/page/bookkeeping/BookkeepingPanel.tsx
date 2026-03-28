@@ -630,23 +630,25 @@ export function BookkeepingPanel() {
         <p className="text-sm text-slate-500">简洁记账，多人共享</p>
       </header>
 
-      <div className="flex-1 overflow-y-auto py-4 px-0 space-y-4">
-        <AddRecordForm
-          purposes={purposes}
-          defaultPurpose={defaultPurpose}
-          purposeHandlers={{
-            create: handleCreatePurpose,
-            update: handleUpdatePurpose,
-            delete: handleDeletePurpose,
-            setDefault: handleSetDefaultPurpose,
-          }}
-          onAdd={handleAdd}
-          onTypeChange={setCurrentType}
-          onPurposeChange={setCurrentPurpose}
-        />
+      <div className="relative flex-1 overflow-y-auto pb-4 px-0">
+        <div className="pt-4 pb-4">
+          <AddRecordForm
+            purposes={purposes}
+            defaultPurpose={defaultPurpose}
+            purposeHandlers={{
+              create: handleCreatePurpose,
+              update: handleUpdatePurpose,
+              delete: handleDeletePurpose,
+              setDefault: handleSetDefaultPurpose,
+            }}
+            onAdd={handleAdd}
+            onTypeChange={setCurrentType}
+            onPurposeChange={setCurrentPurpose}
+          />
+        </div>
 
         <div>
-          <div className="sticky top-0 z-20 mb-3 rounded-xl border border-slate-200/80 bg-white/90 p-3 backdrop-blur">
+          <div className="sticky top-0 z-30 mb-3 rounded-xl border border-slate-200/80 bg-white/95 p-3 backdrop-blur">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-medium text-slate-600">
                 记账记录{currentPurpose ? ` · ${currentPurpose}` : ''}
