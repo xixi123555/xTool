@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useBookkeepingData } from './useBookkeepingData';
 import { useAppStore } from '../../store/useAppStore';
 import { showToast } from '../../components/toast/Toast';
@@ -562,6 +562,7 @@ export function BookkeepingPanel() {
 
   const [currentType, setCurrentType] = useState<'expense' | 'income'>('expense');
   const [currentPurpose, setCurrentPurpose] = useState('');
+  const [searchKeyword, setSearchKeyword] = useState('');
   const [attachmentRecord, setAttachmentRecord] = useState<BookkeepingRecord | null>(null);
 
   useEffect(() => {
@@ -570,9 +571,40 @@ export function BookkeepingPanel() {
     }
   }, [defaultPurpose?.id, defaultPurpose?.name, currentPurpose]);
 
-  const filteredRecords = records.filter(
-    (r) => r.type === currentType && (!currentPurpose || r.purpose === currentPurpose)
+  const baseFilteredRecords = useMemo(
+    () => records.filter((r) => r.type === currentType && (!currentPurpose || r.purpose === currentPurpose)),
+    [records, currentType, currentPurpose]
   );
+
+  const normalizedKeyword = searchKeyword.trim().toLowerCase();
+
+  const filteredRecords = useMemo(() => {
+    if (!normalizedKeyword) return baseFilteredRecords;
+
+    const matched = baseFilteredRecords
+      .map((r) => {
+        const desc = (r.description || '').toLowerCase();
+        const dateText = `${r.record_date || ''} ${r.created_at || ''}`.toLowerCase();
+        const amountText = `${r.amount} ${r.amount.toFixed(2)} ¥${r.amount.toFixed(2)} ${r.amount.toFixed(0)}`.toLowerCase();
+
+        let score = 0;
+        if (desc.includes(normalizedKeyword)) score = 3;
+        else if (dateText.includes(normalizedKeyword)) score = 2;
+        else if (amountText.includes(normalizedKeyword)) score = 1;
+
+        return { record: r, score };
+      })
+      .filter((item) => item.score > 0)
+      .sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        const dateCmp = String(b.record.record_date).localeCompare(String(a.record.record_date));
+        if (dateCmp !== 0) return dateCmp;
+        return b.record.id - a.record.id;
+      });
+
+    return matched.map((item) => item.record);
+  }, [baseFilteredRecords, normalizedKeyword]);
+
   const groupedByDate = filteredRecords.reduce<Record<string, BookkeepingRecord[]>>((acc, r) => {
     const d = r.record_date;
     if (!acc[d]) acc[d] = [];
@@ -614,16 +646,32 @@ export function BookkeepingPanel() {
         />
 
         <div>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium text-slate-600">
-              账单记录{currentPurpose ? ` · ${currentPurpose}` : ''}
-            </h3>
-            {records.length > 0 && (
-              <div className="text-sm font-medium">
-                {currentType === 'expense'
-                  ? <span className="text-red-600">支出 ¥{filteredTotal.toFixed(2)}</span>
-                  : <span className="text-green-600">收入 +¥{filteredTotal.toFixed(2)}</span>
-                }
+          <div className="sticky top-0 z-20 mb-3 rounded-xl border border-slate-200/80 bg-white/90 p-3 backdrop-blur">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium text-slate-600">
+                记账记录{currentPurpose ? ` · ${currentPurpose}` : ''}
+              </h3>
+              {records.length > 0 && (
+                <div className="text-sm font-medium">
+                  {currentType === 'expense'
+                    ? <span className="text-red-600">支出 ¥{filteredTotal.toFixed(2)}</span>
+                    : <span className="text-green-600">收入 +¥{filteredTotal.toFixed(2)}</span>
+                  }
+                </div>
+              )}
+            </div>
+            <div className="mt-2">
+              <input
+                type="text"
+                value={searchKeyword}
+                onChange={(e) => setSearchKeyword(e.target.value)}
+                placeholder="搜索备注/时间/金额（优先匹配备注）"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+              />
+            </div>
+            {normalizedKeyword && (
+              <div className="mt-1 text-xs text-slate-400">
+                共匹配 {filteredRecords.length} 条记录
               </div>
             )}
           </div>
@@ -631,7 +679,9 @@ export function BookkeepingPanel() {
             <div className="py-8 text-center text-slate-400 text-sm">
               {filteredRecords.length === 0 && records.length === 0
                 ? '暂无记录，记一笔吧'
-                : `暂无${currentPurpose ? `「${currentPurpose}」` : ''}${currentType === 'expense' ? '支出' : '收入'}记录`}
+                : normalizedKeyword
+                  ? '未找到匹配记录'
+                  : `暂无${currentPurpose ? `「${currentPurpose}」` : ''}${currentType === 'expense' ? '支出' : '收入'}记录`}
             </div>
           ) : (
             <div className="space-y-4">
