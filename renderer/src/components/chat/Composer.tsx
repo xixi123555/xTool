@@ -2,11 +2,10 @@
  * 聊天输入框组件 — 支持 Enter 发送、粘贴图片、拖拽附件
  */
 import { useState, useRef, useCallback } from 'react';
-import type { ChatMessagePart } from '../../api/chatApi';
 import { showToast } from '../toast/Toast';
 
 interface ComposerProps {
-  onSend: (payload: { text?: string; parts?: ChatMessagePart[] }) => void;
+  onSend: (payload: { text?: string; files?: File[] }) => Promise<void> | void;
   disabled?: boolean;
   placeholder?: string;
 }
@@ -17,7 +16,8 @@ interface PendingAttachment {
   name: string;
   mimeType: string;
   size: number;
-  dataUrl: string;
+  file: File;
+  previewUrl?: string;
 }
 
 const MAX_FILES = 9;
@@ -28,15 +28,6 @@ function formatFileSize(size: number): string {
   if (size < 1024) return `${size} B`;
   if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function readAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = () => reject(new Error('读取文件失败'));
-    reader.readAsDataURL(file);
-  });
 }
 
 export function Composer({ onSend, disabled, placeholder = '输入消息...' }: ComposerProps) {
@@ -50,31 +41,15 @@ export function Composer({ onSend, disabled, placeholder = '输入消息...' }: 
   const handleSend = useCallback(() => {
     const trimmed = text.trim();
     if ((!trimmed && attachments.length === 0) || disabled || readingFiles) return;
-    const parts: ChatMessagePart[] = [];
-    if (trimmed) {
-      parts.push({ type: 'text', text: trimmed });
-    }
-    for (const item of attachments) {
-      if (item.type === 'image') {
-        parts.push({
-          type: 'image',
-          image_url: item.dataUrl,
-          mime_type: item.mimeType,
-        });
-      } else {
-        parts.push({
-          type: 'file',
-          file_url: item.dataUrl,
-          file_name: item.name,
-          file_size: item.size,
-          mime_type: item.mimeType,
-        });
-      }
-    }
-    onSend({ text: trimmed || undefined, parts });
-    setText('');
-    setAttachments([]);
-    inputRef.current?.focus();
+    Promise.resolve(onSend({ text: trimmed || undefined, files: attachments.map((a) => a.file) }))
+      .then(() => {
+        setText('');
+        setAttachments([]);
+        inputRef.current?.focus();
+      })
+      .catch(() => {
+        showToast('发送失败');
+      });
   }, [text, attachments, disabled, readingFiles, onSend]);
 
   const addFiles = useCallback(
@@ -107,22 +82,20 @@ export function Composer({ onSend, disabled, placeholder = '输入消息...' }: 
       if (validFiles.length === 0) return;
       setReadingFiles(true);
       try {
-        const loaded = await Promise.all(
-          validFiles.map(async (file) => {
-            const dataUrl = await readAsDataUrl(file);
-            const attachmentType: PendingAttachment['type'] = file.type.startsWith('image/')
-              ? 'image'
-              : 'file';
-            return {
-              id: `${Date.now()}-${file.name}-${Math.random().toString(36).slice(2, 8)}`,
-              type: attachmentType,
-              name: file.name || '未命名附件',
-              mimeType: file.type || 'application/octet-stream',
-              size: file.size,
-              dataUrl,
-            };
-          })
-        );
+        const loaded = validFiles.map((file) => {
+          const attachmentType: PendingAttachment['type'] = file.type.startsWith('image/')
+            ? 'image'
+            : 'file';
+          return {
+            id: `${Date.now()}-${file.name}-${Math.random().toString(36).slice(2, 8)}`,
+            type: attachmentType,
+            name: file.name || '未命名附件',
+            mimeType: file.type || 'application/octet-stream',
+            size: file.size,
+            file,
+            previewUrl: attachmentType === 'image' ? URL.createObjectURL(file) : undefined,
+          };
+        });
         setAttachments((prev) => [...prev, ...loaded]);
       } catch {
         showToast('读取附件失败');
@@ -134,7 +107,11 @@ export function Composer({ onSend, disabled, placeholder = '输入消息...' }: 
   );
 
   const removeAttachment = (id: string) => {
-    setAttachments((prev) => prev.filter((item) => item.id !== id));
+    setAttachments((prev) => {
+      const target = prev.find((item) => item.id === id);
+      if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl);
+      return prev.filter((item) => item.id !== id);
+    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -248,7 +225,7 @@ export function Composer({ onSend, disabled, placeholder = '输入消息...' }: 
               </button>
               {item.type === 'image' ? (
                 <img
-                  src={item.dataUrl}
+                  src={item.previewUrl}
                   alt={item.name}
                   className="h-20 w-20 rounded-lg object-cover"
                 />

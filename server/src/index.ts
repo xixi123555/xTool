@@ -13,9 +13,6 @@ import todoRoutes from './routes/todo.js';
 import bookkeepingRoutes from './routes/bookkeeping.js';
 import videoToGifRoutes from './routes/videoToGif.js';
 import mcpKeyRoutes from './routes/mcpKey.js';
-import { createServer } from 'http';
-import chatRoutes from './routes/chat.js';
-import { setupChatGateway } from './realtime/chatGateway.js';
 
 dotenv.config();
 
@@ -41,7 +38,6 @@ app.use('/api/todo', todoRoutes);
 app.use('/api/bookkeeping', bookkeepingRoutes);
 app.use('/api/video-to-gif', videoToGifRoutes);
 app.use('/api/mcpkey', mcpKeyRoutes);
-app.use('/api/chat', chatRoutes);
 
 // 错误处理
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
@@ -55,11 +51,7 @@ async function startServer(): Promise<void> {
     // 初始化数据库
     await initDatabase();
     
-    const httpServer = createServer(app);
-    const io = setupChatGateway(httpServer);
-    app.locals.io = io;
-
-    httpServer.listen(PORT, () => {
+    app.listen(PORT, () => {
       console.log(`服务器运行在 http://localhost:${PORT}`);
     });
   } catch (error) {

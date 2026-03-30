@@ -29,12 +29,13 @@ function formatFileSize(size?: number): string {
 
 export function MessageItem({ message, isMine }: MessageItemProps) {
   const textParts = message.content_json
-    .filter((p) => p.type === 'text' && p.text)
-    .map((p) => p.text!)
+    .filter((p) => p.type === 'text' && (p.text || p.payload?.text))
+    .map((p) => p.text || p.payload?.text || '')
     .join('');
-  const imageParts = message.content_json.filter((p) => p.type === 'image' && p.image_url);
-  const fileParts = message.content_json.filter((p) => p.type === 'file' && p.file_url);
-  const hasContent = Boolean(textParts || imageParts.length > 0 || fileParts.length > 0);
+  const imageParts = message.content_json.filter((p) => p.type === 'image' && (p.image_url || p.payload?.url));
+  const fileParts = message.content_json.filter((p) => p.type === 'file' && (p.file_url || p.payload?.url));
+  const linkParts = message.content_json.filter((p) => p.type === 'link' && p.payload?.url);
+  const hasContent = Boolean(textParts || imageParts.length > 0 || fileParts.length > 0 || linkParts.length > 0);
 
   const avatar = message.avatar ? (
     <img
@@ -72,13 +73,13 @@ export function MessageItem({ message, isMine }: MessageItemProps) {
           {imageParts.map((part, idx) => (
             <a
               key={`${message.id}-img-${idx}`}
-              href={part.image_url}
+              href={part.image_url || part.payload?.url}
               target="_blank"
               rel="noreferrer"
               className="block"
             >
               <img
-                src={part.image_url}
+                src={part.image_url || part.payload?.url}
                 alt="聊天图片"
                 className="max-h-56 max-w-full rounded-xl border border-black/5 object-cover"
               />
@@ -87,8 +88,8 @@ export function MessageItem({ message, isMine }: MessageItemProps) {
           {fileParts.map((part, idx) => (
             <a
               key={`${message.id}-file-${idx}`}
-              href={part.file_url}
-              download={part.file_name || '附件'}
+              href={part.file_url || part.payload?.url}
+              download={part.file_name || part.payload?.name || '附件'}
               target="_blank"
               rel="noreferrer"
               className={`block rounded-md border px-3 py-2 ${
@@ -97,11 +98,26 @@ export function MessageItem({ message, isMine }: MessageItemProps) {
                   : 'border-slate-200 bg-slate-50 text-slate-700'
               }`}
             >
-              <p className="text-xs font-semibold break-all">{part.file_name || '附件'}</p>
+              <p className="text-xs font-semibold break-all">{part.file_name || part.payload?.name || '附件'}</p>
               <p className={`text-[11px] ${isMine ? 'text-blue-100/90' : 'text-slate-400'}`}>
                 {part.mime_type || 'application/octet-stream'}
-                {part.file_size ? ` · ${formatFileSize(part.file_size)}` : ''}
+                {(part.file_size || part.payload?.size) ? ` · ${formatFileSize(part.file_size || part.payload?.size)}` : ''}
               </p>
+            </a>
+          ))}
+          {linkParts.map((part, idx) => (
+            <a
+              key={`${message.id}-link-${idx}`}
+              href={part.payload?.url}
+              target="_blank"
+              rel="noreferrer"
+              className={`block rounded-md border px-3 py-2 text-xs break-all ${
+                isMine
+                  ? 'border-white/35 bg-white/12 text-white'
+                  : 'border-slate-200 bg-slate-50 text-slate-700'
+              }`}
+            >
+              {part.payload?.url}
             </a>
           ))}
           {!hasContent && '[空消息]'}

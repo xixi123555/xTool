@@ -11,3 +11,10 @@ release
 uploads/
 server/.env
 xtool-mcp/.env
+# Python / chat-server
+chat-server/.venv/
+chat-server/__pycache__/
+chat-server/**/*.pyc
+chat-server/.pytest_cache/
+chat-server/.mypy_cache/
+chat-server/.env

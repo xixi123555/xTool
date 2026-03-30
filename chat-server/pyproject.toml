@@ -1,0 +1,13 @@
+[project]
+name = "chat-server"
+version = "0.1.0"
+description = "Python chat backend with FastAPI, Socket.IO and LangGraph-ready skill architecture."
+requires-python = ">=3.10"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]

@@ -5,11 +5,16 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { MessageList } from '../../components/chat/MessageList';
 import { Composer } from '../../components/chat/Composer';
-import { fetchChatHistory, ChatMessage, ChatMessagePart } from '../../api/chatApi';
+import {
+  fetchChatHistory,
+  ChatMessage,
+  ChatMessagePart,
+  sendChatByRest,
+  uploadChatFile,
+} from '../../api/chatApi';
 import {
   connectChat,
   disconnectChat,
-  sendChatMessage,
   onNewMessage,
   onOnlineCount,
   onChatError,
@@ -86,8 +91,46 @@ export function ChatRoomPanel() {
       .finally(() => setLoading(false));
   }, [loading, hasMore, messages]);
 
-  const handleSend = useCallback((payload: { text?: string; parts?: ChatMessagePart[] }) => {
-    sendChatMessage(payload);
+  const handleSend = useCallback(async (payload: { text?: string; files?: File[] }) => {
+    const parts: ChatMessagePart[] = [];
+    const text = payload.text?.trim();
+    if (text) parts.push({ type: 'text', text, payload: { text } });
+
+    const files = payload.files ?? [];
+    for (const file of files) {
+      const uploaded = await uploadChatFile(file);
+      if (!uploaded) continue;
+      if ((uploaded.mime_type || '').startsWith('image/')) {
+        parts.push({
+          type: 'image',
+          image_url: uploaded.url,
+          mime_type: uploaded.mime_type,
+          payload: {
+            url: uploaded.url,
+            name: uploaded.name,
+            size: uploaded.size,
+            mime_type: uploaded.mime_type,
+          },
+        });
+      } else {
+        parts.push({
+          type: 'file',
+          file_url: uploaded.url,
+          file_name: uploaded.name,
+          file_size: uploaded.size,
+          mime_type: uploaded.mime_type,
+          payload: {
+            url: uploaded.url,
+            name: uploaded.name,
+            size: uploaded.size,
+            mime_type: uploaded.mime_type,
+          },
+        });
+      }
+    }
+
+    if (parts.length === 0) return;
+    await sendChatByRest({ parts, room_id: 'public' });
   }, []);
 
   if (!user || !token) {

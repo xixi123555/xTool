@@ -5,8 +5,8 @@ import { io, Socket } from 'socket.io-client';
 import type { ChatMessage, ChatMessagePart } from './chatApi';
 
 const SOCKET_URL = import.meta.env.PROD
-  ? 'http://39.105.137.213:5198'
-  : 'http://localhost:5198';
+  ? (import.meta.env.VITE_CHAT_SOCKET_URL || 'http://39.105.137.213:5298')
+  : (import.meta.env.VITE_CHAT_SOCKET_URL || 'http://localhost:5298');
 
 let socket: Socket | null = null;
 
