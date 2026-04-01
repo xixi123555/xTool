@@ -17,9 +17,10 @@
     "dist": "yarn build && electron-builder --config electron-builder.yml",
     "lint": "eslint \"electron/src/**/*.ts\" \"renderer/src/**/*.{ts,tsx}\"",
     "start:server": "cd server && yarn build && yarn start",
-    "start:chat-server": "cd chat-server && python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt && uvicorn app.main:app --host 0.0.0.0 --port 5298",
+    "start:chat-server": "cd chat-server && python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt && uvicorn app.main:app --host 0.0.0.0 --port 5298 --reload",
     "start:mcp": "cd xtool-mcp && yarn dev",
-    "start:all": "concurrently \"yarn start:server\" \"yarn start:chat-server\" \"yarn start:mcp\" \"yarn dev\"",
+    "start:all": "concurrently \"yarn start:chat-server\" \"yarn start:server\" \"yarn start:mcp\" \"yarn dev\"",
+    "stop:all": "bash -lc 'for p in 5199 5198 5197 5298; do pids=$(lsof -ti tcp:$p); if [ -n \"$pids\" ]; then echo \"$pids\" | xargs kill -9; fi; done'",
     "start:all:pro": "yarn build:pro && pm2 stop xTool-mcp xTool-server && pm2 start ecosystem.config.js"
   },
   "devDependencies": {

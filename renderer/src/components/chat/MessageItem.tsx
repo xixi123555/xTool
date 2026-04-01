@@ -37,15 +37,22 @@ export function MessageItem({ message, isMine }: MessageItemProps) {
   const linkParts = message.content_json.filter((p) => p.type === 'link' && p.payload?.url);
   const hasContent = Boolean(textParts || imageParts.length > 0 || fileParts.length > 0 || linkParts.length > 0);
 
+  const displayName = message.is_agent ? (message.agent_name || '智能体') : message.username;
   const avatar = message.avatar ? (
     <img
       src={message.avatar}
-      alt={message.username}
+      alt={displayName}
       className="h-9 w-9 flex-shrink-0 rounded-full border border-white/80 object-cover shadow-sm"
     />
   ) : (
-    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-500 to-indigo-500 text-sm font-semibold text-white shadow-sm">
-      {getAvatarText(message.username)}
+    <div
+      className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white shadow-sm ${
+        message.is_agent
+          ? 'bg-gradient-to-br from-emerald-500 to-teal-600'
+          : 'bg-gradient-to-br from-sky-500 to-indigo-500'
+      }`}
+    >
+      {message.is_agent ? 'AI' : getAvatarText(message.username)}
     </div>
   );
 
@@ -54,7 +61,12 @@ export function MessageItem({ message, isMine }: MessageItemProps) {
       {avatar}
       <div className={`flex max-w-[78%] flex-col ${isMine ? 'items-end' : 'items-start'}`}>
         <div className="mb-1 flex flex-wrap items-center gap-1.5">
-          <span className="text-sm font-medium text-slate-500">{message.username}</span>
+          <span className="text-sm font-medium text-slate-500">{displayName}</span>
+          {message.is_agent && (
+            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-600">
+              机器人
+            </span>
+          )}
           {message.room_id && message.room_id !== 'public' && (
             <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
               {message.room_id}
@@ -121,6 +133,18 @@ export function MessageItem({ message, isMine }: MessageItemProps) {
             </a>
           ))}
           {!hasContent && '[空消息]'}
+          {message.rag_sources && message.rag_sources.length > 0 && (
+            <details className={`rounded-md border px-2.5 py-1.5 text-[11px] ${isMine ? 'border-white/30 bg-white/10' : 'border-slate-200 bg-slate-50/80'}`}>
+              <summary className="cursor-pointer font-semibold">参考来源 ({message.rag_sources.length})</summary>
+              <div className="mt-1.5 space-y-1">
+                {message.rag_sources.map((src) => (
+                  <p key={`${message.id}-src-${src.doc_id}-${src.source_type}`} className="break-all">
+                    [{src.source_type}] {src.snippet}
+                  </p>
+                ))}
+              </div>
+            </details>
+          )}
         </div>
       </div>
     </div>

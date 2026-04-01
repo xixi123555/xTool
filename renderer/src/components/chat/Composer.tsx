@@ -1,7 +1,7 @@
 /**
  * 聊天输入框组件 — 支持 Enter 发送、粘贴图片、拖拽附件
  */
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { showToast } from '../toast/Toast';
 
 interface ComposerProps {
@@ -37,12 +37,32 @@ export function Composer({ onSend, disabled, placeholder = '输入消息...' }: 
   const [readingFiles, setReadingFiles] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const attachmentsRef = useRef<PendingAttachment[]>([]);
+
+  const revokePreviewUrls = useCallback((items: PendingAttachment[]) => {
+    items.forEach((item) => {
+      if (item.previewUrl) {
+        URL.revokeObjectURL(item.previewUrl);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    attachmentsRef.current = attachments;
+  }, [attachments]);
+
+  useEffect(() => {
+    return () => {
+      revokePreviewUrls(attachmentsRef.current);
+    };
+  }, [revokePreviewUrls]);
 
   const handleSend = useCallback(() => {
     const trimmed = text.trim();
     if ((!trimmed && attachments.length === 0) || disabled || readingFiles) return;
     Promise.resolve(onSend({ text: trimmed || undefined, files: attachments.map((a) => a.file) }))
       .then(() => {
+        revokePreviewUrls(attachments);
         setText('');
         setAttachments([]);
         inputRef.current?.focus();
@@ -50,7 +70,7 @@ export function Composer({ onSend, disabled, placeholder = '输入消息...' }: 
       .catch(() => {
         showToast('发送失败');
       });
-  }, [text, attachments, disabled, readingFiles, onSend]);
+  }, [text, attachments, disabled, readingFiles, onSend, revokePreviewUrls]);
 
   const addFiles = useCallback(
     async (files: File[]) => {

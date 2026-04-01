@@ -5,8 +5,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.api.routes.health import router as health_router
 from app.api.routes.chat import router as chat_router
+from app.api.routes.orchestration import router as orchestration_router
 from app.core.settings import settings
 from app.db.session import init_pool, close_pool
+from app.services.knowledge_base_service import ensure_ready
+from app.repositories.orchestration_repository import ensure_orchestration_table
 
 
 def create_api_app() -> FastAPI:
@@ -23,10 +26,13 @@ def create_api_app() -> FastAPI:
     api.mount("/uploads/chat", StaticFiles(directory=settings.upload_dir), name="chat-uploads")
     api.include_router(health_router)
     api.include_router(chat_router)
+    api.include_router(orchestration_router)
 
     @api.on_event("startup")
     async def on_startup():
         await init_pool()
+        await ensure_ready()
+        await ensure_orchestration_table()
 
     @api.on_event("shutdown")
     async def on_shutdown():

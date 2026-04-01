@@ -151,7 +151,7 @@ function MainApp() {
     return <Navigate to="/login" replace />;
   }
 
-  const isChatRoom = location.pathname === '/chat-room';
+  const isChatRoom = location.pathname.startsWith('/chat/');
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-white text-slate-800">

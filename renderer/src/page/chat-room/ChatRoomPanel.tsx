@@ -10,8 +10,10 @@ import {
   ChatMessage,
   ChatMessagePart,
   sendChatByRest,
+  sendAgentChat,
   uploadChatFile,
 } from '../../api/chatApi';
+import { useNavigate } from 'react-router-dom';
 import {
   connectChat,
   disconnectChat,
@@ -35,6 +37,7 @@ export function ChatRoomPanel() {
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!token) return;
@@ -92,8 +95,22 @@ export function ChatRoomPanel() {
   }, [loading, hasMore, messages]);
 
   const handleSend = useCallback(async (payload: { text?: string; files?: File[] }) => {
+    const rawText = payload.text?.trim() || '';
+    if (rawText.startsWith('/bot ')) {
+      const botQuestion = rawText.replace('/bot ', '').trim();
+      if (!botQuestion) {
+        showToast('请在 /bot 后输入问题');
+        return;
+      }
+      const agentMessage = await sendAgentChat({ text: botQuestion, room_id: 'public', include_sources: true });
+      if (agentMessage) {
+        setMessages((prev) => (prev.some((m) => m.id === agentMessage.id) ? prev : [...prev, agentMessage]));
+      }
+      return;
+    }
+
     const parts: ChatMessagePart[] = [];
-    const text = payload.text?.trim();
+    const text = rawText;
     if (text) parts.push({ type: 'text', text, payload: { text } });
 
     const files = payload.files ?? [];
@@ -154,6 +171,20 @@ export function ChatRoomPanel() {
             <h2 className="text-[30px] font-bold tracking-tight text-slate-800">聊天室</h2>
           </div>
           <div className="chat-room-online flex items-center gap-3 rounded-full border border-emerald-100 bg-emerald-50/70 px-4 py-2">
+            <button
+              type="button"
+              className="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-600 hover:bg-indigo-100"
+              onClick={() => navigate('/chat/orchestrator')}
+            >
+              智能体编排
+            </button>
+            <button
+              type="button"
+              className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-600 hover:bg-sky-100"
+              onClick={() => navigate('/chat/kb-upload')}
+            >
+              知识库上传
+            </button>
             <span
               className={`inline-block h-2.5 w-2.5 rounded-full ${connected ? 'bg-emerald-400' : 'bg-slate-300'}`}
             />
@@ -183,7 +214,7 @@ export function ChatRoomPanel() {
       <Composer
         onSend={handleSend}
         disabled={!connected}
-        placeholder={connected ? '输入消息，Enter 发送...' : '等待连接...'}
+        placeholder={connected ? '输入消息，Enter 发送；/bot 问题 可呼叫机器人...' : '等待连接...'}
       />
     </div>
   );

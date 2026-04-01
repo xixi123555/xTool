@@ -33,6 +33,12 @@ const VideoToGifPanel = lazy(() =>
 const ChatRoomPanel = lazy(() =>
   import('../page/chat-room/ChatRoomPanel').then(m => ({ default: m.ChatRoomPanel }))
 );
+const AgentOrchestratorPage = lazy(() =>
+  import('../page/agent-orchestrator/AgentOrchestratorPage').then(m => ({ default: m.AgentOrchestratorPage }))
+);
+const ChatKnowledgeUploadPage = lazy(() =>
+  import('../page/chat-kb-upload/ChatKnowledgeUploadPage').then(m => ({ default: m.ChatKnowledgeUploadPage }))
+);
 
 export interface RouteConfig {
   path: string;
@@ -128,12 +134,30 @@ export const routes: RouteConfig[] = [
     isShowForGuest: true,
   },
   {
-    path: '/chat-room',
+    path: '/chat/room',
     element: <ChatRoomPanel />,
     label: '聊天室',
     icon: '💬',
     permissionKey: '',
     isShowForGuest: true,
+  },
+  {
+    path: '/chat/orchestrator',
+    element: <AgentOrchestratorPage />,
+    label: '智能体编排',
+    icon: '🧠',
+    permissionKey: '',
+    requiresAuth: true,
+    isShowForGuest: false,
+  },
+  {
+    path: '/chat/kb-upload',
+    element: <ChatKnowledgeUploadPage />,
+    label: '知识库上传',
+    icon: '📚',
+    permissionKey: '',
+    requiresAuth: true,
+    isShowForGuest: false,
   },
 ];
 

@@ -38,6 +38,9 @@ class ChatMessage(BaseModel):
     created_at: Optional[datetime] = None
     username: Optional[str] = None
     avatar: Optional[str] = None
+    is_agent: bool = False
+    agent_name: Optional[str] = None
+    rag_sources: Optional[List["RagSource"]] = None
 
 
 class ChatUser(BaseModel):
@@ -52,3 +55,17 @@ class SendMessageRequest(BaseModel):
     text: Optional[str] = None
     parts: List[ChatMessagePart] = Field(default_factory=list)
     room_id: Optional[str] = None
+
+
+class RagSource(BaseModel):
+    doc_id: int
+    source_type: str
+    source_id: Optional[str] = None
+    score: float
+    snippet: str
+
+
+class AgentChatRequest(BaseModel):
+    room_id: Optional[str] = None
+    text: str
+    include_sources: bool = True
