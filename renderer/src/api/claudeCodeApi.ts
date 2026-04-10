@@ -2,7 +2,7 @@
  * Claude 代码助手 API — 经 xTool Server 代理 Anthropic
  */
 const API_ORIGIN = import.meta.env.PROD
-  ? 'https://39.105.137.213:5198'
+  ? 'https://39.105.137.213/server'
   : 'http://localhost:5198';
 
 const MESSAGES_PATH = `${API_ORIGIN}/api/claude-code/messages`;

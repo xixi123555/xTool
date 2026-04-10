@@ -4,7 +4,7 @@
 import { getHttpClient } from '../utils/http';
 
 const CHAT_API_BASE = import.meta.env.VITE_CHAT_API_BASE || (
-  import.meta.env.PROD ? 'https://39.105.137.213:5298/api' : 'http://localhost:5298/api'
+  import.meta.env.PROD ? 'https://39.105.137.213/chatServer/api' : 'http://localhost:5298/api'
 );
 const chatHttp = getHttpClient();
 
