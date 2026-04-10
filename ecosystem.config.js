@@ -17,5 +17,14 @@ module.exports = {
     instances: 1,
     autorestart: true,
     watch: false,
+  },
+  {
+    name: 'xTool-chat-server',
+    script: 'npm',
+    args: 'run start:chat-server',
+    cwd: '/root/.nvm/xTool',
+    instances: 1,
+    autorestart: true,
+    watch: false,
   }],
 };

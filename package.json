@@ -13,7 +13,7 @@
     "dev:electron": "yarn workspace devtools-suite-electron dev",
     "dev:pro": "yarn workspace devtools-suite-electron dev:pro",
     "build": "yarn workspace devtools-suite-renderer build && yarn workspace devtools-suite-electron build",
-    "build:pro": "yarn build&& sudo cp -r /root/.nvm/xTool/renderer/dist/* /var/www/html/xTool/",
+    "build:pro": "yarn build && sudo cp -r /root/.nvm/xTool/renderer/dist/* /var/www/html/xTool/",
     "postinstall": "electron-builder install-app-deps",
     "dist": "yarn build && electron-builder --config electron-builder.yml",
     "lint": "eslint \"electron/src/**/*.ts\" \"renderer/src/**/*.{ts,tsx}\"",
@@ -23,7 +23,7 @@
     "start:all:except-electron": "concurrently \"yarn start:chat-server\" \"yarn start:server\" \"yarn start:mcp\" \"yarn dev\"",
     "start:all": "concurrently \"yarn start:all:except-electron\" \"yarn dev:electron\"",
     "stop:all": "bash -lc 'for p in 5199 5198 5197 5298; do pids=$(lsof -ti tcp:$p); if [ -n \"$pids\" ]; then echo \"$pids\" | xargs kill -9; fi; done'",
-    "start:all:pro": "yarn build:pro && pm2 stop xTool-mcp xTool-server && pm2 start ecosystem.config.js"
+    "start:all:pro": "yarn build:pro && pm2 stop xTool-mcp xTool-server xTool-chat-server && pm2 start ecosystem.config.js"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
