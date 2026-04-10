@@ -13,6 +13,7 @@ import todoRoutes from './routes/todo.js';
 import bookkeepingRoutes from './routes/bookkeeping.js';
 import videoToGifRoutes from './routes/videoToGif.js';
 import mcpKeyRoutes from './routes/mcpKey.js';
+import claudeCodeRoutes from './routes/claudeCode.js';
 
 dotenv.config();
 
@@ -38,6 +39,7 @@ app.use('/api/todo', todoRoutes);
 app.use('/api/bookkeeping', bookkeepingRoutes);
 app.use('/api/video-to-gif', videoToGifRoutes);
 app.use('/api/mcpkey', mcpKeyRoutes);
+app.use('/api/claude-code', claudeCodeRoutes);
 
 // 错误处理
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {

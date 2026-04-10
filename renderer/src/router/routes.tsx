@@ -39,6 +39,9 @@ const AgentOrchestratorPage = lazy(() =>
 const ChatKnowledgeUploadPage = lazy(() =>
   import('../page/chat-kb-upload/ChatKnowledgeUploadPage').then(m => ({ default: m.ChatKnowledgeUploadPage }))
 );
+const CodeAssistantPage = lazy(() =>
+  import('../page/code-assistant/CodeAssistantPage').then(m => ({ default: m.CodeAssistantPage }))
+);
 
 export interface RouteConfig {
   path: string;
@@ -123,7 +126,8 @@ export const routes: RouteConfig[] = [
     label: '记账',
     icon: '💰',
     permissionKey: '',
-    isShowForGuest: true,
+    requiresAuth: true,
+    isShowForGuest: false,
   },
   {
     path: '/video-to-gif',
@@ -159,8 +163,15 @@ export const routes: RouteConfig[] = [
     requiresAuth: true,
     isShowForGuest: false,
   },
+  {
+    path: '/code',
+    element: <CodeAssistantPage />,
+    label: 'Code',
+    icon: '💻',
+    permissionKey: '',
+    isShowForGuest: true,
+  },
 ];
 
 // 默认路由
-export const defaultRoute = '/bookkeeping';
-
+export const defaultRoute = '/chat/room';

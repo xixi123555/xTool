@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { ingestKnowledgeFile, ingestKnowledgeText, uploadChatFile } from '../../api/chatApi';
 import { showToast } from '../../components/toast/Toast';
 
@@ -18,6 +18,31 @@ export function ChatKnowledgeUploadPage() {
     () => files.reduce((sum, item) => sum + item.file.size, 0),
     [files]
   );
+
+  const appendFiles = useCallback((incoming: File[]) => {
+    if (incoming.length === 0) return;
+    const picked = incoming.map((file) => ({
+      id: `${Date.now()}-${file.name}-${Math.random().toString(36).slice(2, 7)}`,
+      file,
+    }));
+    setFiles((prev) => [...prev, ...picked]);
+  }, []);
+
+  const handlePasteImage = useCallback((e: React.ClipboardEvent<HTMLDivElement>) => {
+    const pastedFiles: File[] = [];
+    for (const item of Array.from(e.clipboardData.items || [])) {
+      if (item.kind !== 'file') continue;
+      const file = item.getAsFile();
+      if (file && file.type.startsWith('image/')) {
+        pastedFiles.push(file);
+      }
+    }
+    if (pastedFiles.length > 0) {
+      e.preventDefault();
+      appendFiles(pastedFiles);
+      showToast(`已粘贴 ${pastedFiles.length} 张图片`);
+    }
+  }, [appendFiles]);
 
   const formatSize = (size: number) => {
     if (size < 1024) return `${size} B`;
@@ -106,22 +131,24 @@ export function ChatKnowledgeUploadPage() {
 
         <section className="flex min-h-0 flex-col rounded-xl border border-slate-200 bg-white p-4">
           <h3 className="text-sm font-semibold text-slate-700">文件入库（图片/文档/附件）</h3>
-          <label className="mt-3 flex h-28 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 text-sm text-slate-500 hover:bg-slate-100">
-            点击选择文件或拖拽到此
+          <div
+            className="mt-3"
+            tabIndex={0}
+            onPaste={handlePasteImage}
+          >
+            <label className="flex h-28 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 text-sm text-slate-500 hover:bg-slate-100">
+              点击选择文件、拖拽到此，或粘贴图片
             <input
               type="file"
               multiple
               className="hidden"
               onChange={(e) => {
-                const picked = Array.from(e.target.files || []).map((file) => ({
-                  id: `${Date.now()}-${file.name}-${Math.random().toString(36).slice(2, 7)}`,
-                  file,
-                }));
-                setFiles((prev) => [...prev, ...picked]);
+                appendFiles(Array.from(e.target.files || []));
                 e.currentTarget.value = '';
               }}
             />
-          </label>
+            </label>
+          </div>
 
           <div className="mt-3 flex-1 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-2">
             {files.length === 0 ? (
@@ -146,7 +173,7 @@ export function ChatKnowledgeUploadPage() {
           </div>
 
           <p className="mt-2 text-xs text-slate-500">
-            已选 {files.length} 个文件，总大小 {formatSize(totalSize)}
+            已选 {files.length} 个文件，总大小 {formatSize(totalSize)}。支持 Ctrl/Cmd+V 粘贴图片。
           </p>
           <button
             type="button"
@@ -161,4 +188,3 @@ export function ChatKnowledgeUploadPage() {
     </div>
   );
 }
-

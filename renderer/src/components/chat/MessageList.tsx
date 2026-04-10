@@ -22,7 +22,6 @@ export function MessageList({
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const shouldAutoScroll = useRef(true);
   const loadingMoreRef = useRef(false);
   const prevScrollHeightRef = useRef(0);
   const prevScrollTopRef = useRef(0);
@@ -41,18 +40,13 @@ export function MessageList({
       loadingMoreRef.current = false;
       return;
     }
-
-    if (shouldAutoScroll.current) {
-      scrollToBottom();
-    }
+    // 新消息到达时始终滚到可视区域底部（用户发言/机器人回复/他人消息）
+    scrollToBottom();
   }, [messages.length, scrollToBottom]);
 
   const handleScroll = () => {
     const el = containerRef.current;
     if (!el) return;
-
-    const isAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
-    shouldAutoScroll.current = isAtBottom;
 
     if (el.scrollTop < 60 && hasMore && !loading && onLoadMore) {
       loadingMoreRef.current = true;

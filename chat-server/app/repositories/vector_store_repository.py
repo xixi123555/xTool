@@ -1,6 +1,6 @@
 from __future__ import annotations
 import math
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Sequence
 import aiomysql
 from app.db.session import get_pool
 
@@ -113,6 +113,49 @@ async def list_candidates(room_id: str, limit: int = 30) -> List[Dict]:
             return list(rows)
 
 
+async def search_candidates_by_keywords(
+    room_id: str,
+    keywords: Sequence[str],
+    limit: int = 120,
+    source_types: Optional[Sequence[str]] = None,
+) -> List[Dict]:
+    tokens = [str(k).strip() for k in (keywords or []) if str(k).strip()]
+    if not tokens:
+        return []
+
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            where_parts = ["(d.room_id = %s OR d.room_id = 'public')"]
+            params: List = [room_id]
+
+            if source_types:
+                st = [str(x).strip() for x in source_types if str(x).strip()]
+                if st:
+                    where_parts.append(f"d.source_type IN ({','.join(['%s'] * len(st))})")
+                    params.extend(st)
+
+            like_parts: List[str] = []
+            for t in tokens[:10]:
+                like_parts.append("d.content_text LIKE %s")
+                params.append(f"%{t}%")
+            if like_parts:
+                where_parts.append(f"({' OR '.join(like_parts)})")
+
+            sql = f"""
+                SELECT d.id, d.room_id, d.source_type, d.source_id, d.content_text, d.metadata_json, v.vector_json
+                FROM kb_documents d
+                LEFT JOIN kb_vectors v ON v.doc_id = d.id
+                WHERE {' AND '.join(where_parts)}
+                ORDER BY d.updated_at DESC
+                LIMIT %s
+            """
+            params.append(int(limit))
+            await cur.execute(sql, tuple(params))
+            rows = await cur.fetchall()
+            return list(rows)
+
+
 async def list_chat_file_documents(limit: int = 500) -> List[Dict]:
     pool = await get_pool()
     async with pool.acquire() as conn:
@@ -130,3 +173,33 @@ async def list_chat_file_documents(limit: int = 500) -> List[Dict]:
             rows = await cur.fetchall()
             return list(rows)
 
+
+async def get_document_by_source(source_type: str, source_id: str) -> Optional[Dict]:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute(
+                """
+                SELECT id, room_id, source_type, source_id, content_text, metadata_json, created_at, updated_at
+                FROM kb_documents
+                WHERE source_type = %s AND source_id = %s
+                LIMIT 1
+                """,
+                (source_type, source_id),
+            )
+            row = await cur.fetchone()
+            return dict(row) if row else None
+
+
+async def delete_documents_by_source_prefix(source_type: str, source_prefix: str) -> int:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                """
+                DELETE FROM kb_documents
+                WHERE source_type = %s AND source_id LIKE %s
+                """,
+                (source_type, f"{source_prefix}%"),
+            )
+            return int(cur.rowcount or 0)

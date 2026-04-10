@@ -5,13 +5,13 @@ import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } f
 import { useAppStore } from '../store/useAppStore';
 
 const BASE_URL = import.meta.env.PROD
-  ? 'http://39.105.137.213:5198/api'
+  ? 'https://39.105.137.213:5198/api'
   : 'http://localhost:5198/api';
 
 // 创建 axios 实例
 const httpClient: AxiosInstance = axios.create({
   baseURL: BASE_URL,
-  timeout: 30000, // 30秒超时
+  timeout: 120000, // 120秒超时
   headers: {
     'Content-Type': 'application/json',
   },
@@ -171,4 +171,3 @@ export function setDefaultHeader(key: string, value: string): void {
 export function removeDefaultHeader(key: string): void {
   delete httpClient.defaults.headers.common[key];
 }
-

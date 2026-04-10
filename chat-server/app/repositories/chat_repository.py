@@ -5,6 +5,7 @@ from typing import Optional, List, Dict, Any
 from app.db.session import get_pool
 from app.schemas.chat import ChatMessage, ChatMessagePart
 from app.domain.chat_protocol import normalize_parts
+from app.core.settings import settings
 
 
 def _clamp_limit(limit: Optional[int]) -> int:
@@ -24,14 +25,21 @@ def _format_row(row: Dict[str, Any]) -> ChatMessage:
         except Exception:
             raw = [{"type": "text", "text": str(raw)}]
     parts = [ChatMessagePart(**item) for item in (raw or [])]
+    is_agent = int(row.get("user_id") or 0) == int(settings.agent_user_id)
+    username = row.get("username") or "未知"
+    if is_agent:
+        username = settings.agent_name or username
+
     return ChatMessage(
         id=row["id"],
         room_id=row["room_id"],
         user_id=row["user_id"],
         content_json=normalize_parts(parts),
         created_at=row.get("created_at"),
-        username=row.get("username") or "未知",
+        username=username,
         avatar=row.get("avatar"),
+        is_agent=is_agent,
+        agent_name=(settings.agent_name if is_agent else None),
     )
 
 

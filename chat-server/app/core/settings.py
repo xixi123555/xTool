@@ -21,6 +21,7 @@ class Settings(BaseModel):
     default_room: str = os.getenv("PY_CHAT_DEFAULT_ROOM", "public")
     kb_top_k: int = int(os.getenv("PY_CHAT_KB_TOP_K", "6"))
     kb_candidate_k: int = int(os.getenv("PY_CHAT_KB_CANDIDATE_K", "30"))
+    kb_candidate_k_excel: int = int(os.getenv("PY_CHAT_KB_CANDIDATE_K_EXCEL", "180"))
     kb_max_context_chars: int = int(os.getenv("PY_CHAT_KB_MAX_CONTEXT_CHARS", "3500"))
     vector_backend: str = os.getenv("PY_CHAT_VECTOR_BACKEND", "pgvector")
     llm_provider: str = os.getenv("PY_CHAT_LLM_PROVIDER", "mock")
@@ -28,6 +29,10 @@ class Settings(BaseModel):
     llm_api_base: str = os.getenv("PY_CHAT_LLM_API_BASE", "")
     llm_api_key: str = os.getenv("PY_CHAT_LLM_API_KEY", "")
     llm_timeout_seconds: int = int(os.getenv("PY_CHAT_LLM_TIMEOUT_SECONDS", "20"))
+    deepseek_api_base: str = os.getenv("DEEPSEEK_API_BASE", "https://api.deepseek.com")
+    deepseek_model: str = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
+    deepseek_api_key: str = os.getenv("DEEPSEEK_API_KEY", "")
+    embedding_model_name: str = os.getenv("PY_CHAT_EMBEDDING_MODEL", "BAAI/bge-small-zh-v1.5")
     agent_user_id: int = int(os.getenv("PY_CHAT_AGENT_USER_ID", "1"))
     agent_name: str = os.getenv("PY_CHAT_AGENT_NAME", "智能体")
 

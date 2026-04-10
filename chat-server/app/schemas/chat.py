@@ -1,6 +1,6 @@
 from __future__ import annotations
 from datetime import datetime
-from typing import Literal, Optional, List
+from typing import Literal, Optional, List, Dict
 from pydantic import BaseModel, Field
 
 
@@ -63,6 +63,9 @@ class RagSource(BaseModel):
     source_id: Optional[str] = None
     score: float
     snippet: str
+    sheet_name: Optional[str] = None
+    row_index: Optional[int] = None
+    row_data: Optional[Dict[str, str]] = None
 
 
 class AgentChatRequest(BaseModel):

@@ -8,6 +8,20 @@ interface MessageItemProps {
   isMine: boolean;
 }
 
+function TypingDots() {
+  return (
+    <span className="inline-flex items-center gap-1">
+      {[0, 1, 2].map((idx) => (
+        <span
+          key={idx}
+          className="h-1.5 w-1.5 rounded-full bg-current opacity-60 animate-bounce"
+          style={{ animationDelay: `${idx * 0.12}s` }}
+        />
+      ))}
+    </span>
+  );
+}
+
 function formatTime(dateStr?: string): string {
   if (!dateStr) return '';
   const d = new Date(dateStr);
@@ -35,7 +49,13 @@ export function MessageItem({ message, isMine }: MessageItemProps) {
   const imageParts = message.content_json.filter((p) => p.type === 'image' && (p.image_url || p.payload?.url));
   const fileParts = message.content_json.filter((p) => p.type === 'file' && (p.file_url || p.payload?.url));
   const linkParts = message.content_json.filter((p) => p.type === 'link' && p.payload?.url);
-  const hasContent = Boolean(textParts || imageParts.length > 0 || fileParts.length > 0 || linkParts.length > 0);
+  const hasContent = Boolean(
+    textParts
+    || imageParts.length > 0
+    || fileParts.length > 0
+    || linkParts.length > 0
+    || (message.pending && message.is_agent),
+  );
 
   const displayName = message.is_agent ? (message.agent_name || '智能体') : message.username;
   const avatar = message.avatar ? (
@@ -67,6 +87,11 @@ export function MessageItem({ message, isMine }: MessageItemProps) {
               机器人
             </span>
           )}
+          {message.pending && message.is_agent && (
+            <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-600">
+              回复中
+            </span>
+          )}
           {message.room_id && message.room_id !== 'public' && (
             <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
               {message.room_id}
@@ -81,7 +106,14 @@ export function MessageItem({ message, isMine }: MessageItemProps) {
               : 'rounded-tl-md border border-slate-200/80 bg-white text-slate-700'
           }`}
         >
-          {textParts && <p>{textParts}</p>}
+          {message.pending && message.is_agent ? (
+            <p className="flex items-center gap-2">
+              <span>思考中</span>
+              <TypingDots />
+            </p>
+          ) : textParts ? (
+            <p>{textParts}</p>
+          ) : null}
           {imageParts.map((part, idx) => (
             <a
               key={`${message.id}-img-${idx}`}
@@ -139,7 +171,16 @@ export function MessageItem({ message, isMine }: MessageItemProps) {
               <div className="mt-1.5 space-y-1">
                 {message.rag_sources.map((src) => (
                   <p key={`${message.id}-src-${src.doc_id}-${src.source_type}`} className="break-all">
-                    [{src.source_type}] {src.snippet}
+                    [{src.source_type}]
+                    {src.sheet_name ? ` Sheet:${src.sheet_name}` : ''}
+                    {src.row_index ? ` 行:${src.row_index}` : ''}
+                    {' '}
+                    {src.snippet}
+                    {src.row_data && Object.keys(src.row_data).length > 0 && (
+                      <span className="block mt-1 opacity-90">
+                        {Object.entries(src.row_data).map(([k, v]) => `${k}:${v}`).join('；')}
+                      </span>
+                    )}
                   </p>
                 ))}
               </div>

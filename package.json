@@ -9,7 +9,8 @@
     "packages/shared"
   ],
   "scripts": {
-    "dev": "concurrently \"yarn workspace devtools-suite-renderer dev\" \"yarn workspace devtools-suite-electron dev\"",
+    "dev": "yarn workspace devtools-suite-renderer dev",
+    "dev:electron": "yarn workspace devtools-suite-electron dev",
     "dev:pro": "yarn workspace devtools-suite-electron dev:pro",
     "build": "yarn workspace devtools-suite-renderer build && yarn workspace devtools-suite-electron build",
     "build:pro": "yarn build&& sudo cp -r /root/.nvm/xTool/renderer/dist/* /var/www/html/xTool/",
@@ -19,7 +20,8 @@
     "start:server": "cd server && yarn build && yarn start",
     "start:chat-server": "cd chat-server && python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt && uvicorn app.main:app --host 0.0.0.0 --port 5298 --reload",
     "start:mcp": "cd xtool-mcp && yarn dev",
-    "start:all": "concurrently \"yarn start:chat-server\" \"yarn start:server\" \"yarn start:mcp\" \"yarn dev\"",
+    "start:all:except-electron": "concurrently \"yarn start:chat-server\" \"yarn start:server\" \"yarn start:mcp\" \"yarn dev\"",
+    "start:all": "concurrently \"yarn start:all:except-electron\" \"yarn dev:electron\"",
     "stop:all": "bash -lc 'for p in 5199 5198 5197 5298; do pids=$(lsof -ti tcp:$p); if [ -n \"$pids\" ]; then echo \"$pids\" | xargs kill -9; fi; done'",
     "start:all:pro": "yarn build:pro && pm2 stop xTool-mcp xTool-server && pm2 start ecosystem.config.js"
   },

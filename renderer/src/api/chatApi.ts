@@ -4,7 +4,7 @@
 import { getHttpClient } from '../utils/http';
 
 const CHAT_API_BASE = import.meta.env.VITE_CHAT_API_BASE || (
-  import.meta.env.PROD ? 'http://39.105.137.213:5298/api' : 'http://localhost:5298/api'
+  import.meta.env.PROD ? 'https://39.105.137.213:5298/api' : 'http://localhost:5298/api'
 );
 const chatHttp = getHttpClient();
 
@@ -37,12 +37,17 @@ export interface ChatMessage {
   avatar?: string | null;
   is_agent?: boolean;
   agent_name?: string;
+  pending?: boolean;
+  error?: boolean;
   rag_sources?: Array<{
     doc_id: number;
     source_type: string;
     source_id?: string;
     score: number;
     snippet: string;
+    sheet_name?: string;
+    row_index?: number;
+    row_data?: Record<string, string>;
   }>;
 }
 

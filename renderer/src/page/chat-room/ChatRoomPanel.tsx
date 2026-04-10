@@ -1,7 +1,7 @@
 /**
  * 聊天室页面 — 实时通讯主入口
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { MessageList } from '../../components/chat/MessageList';
 import { Composer } from '../../components/chat/Composer';
@@ -37,7 +37,14 @@ export function ChatRoomPanel() {
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const tempIdRef = useRef(-1);
   const navigate = useNavigate();
+
+  const nextTempId = useCallback(() => {
+    const id = tempIdRef.current;
+    tempIdRef.current -= 1;
+    return id;
+  }, []);
 
   useEffect(() => {
     if (!token) return;
@@ -47,8 +54,9 @@ export function ChatRoomPanel() {
     const unsubs = [
       onNewMessage((msg) => {
         setMessages((prev) => {
-          if (prev.some((m) => m.id === msg.id)) return prev;
-          return [...prev, msg];
+          const cleaned = msg.is_agent ? prev.filter((m) => !(m.is_agent && m.pending)) : prev;
+          if (cleaned.some((m) => m.id === msg.id)) return cleaned;
+          return [...cleaned, msg];
         });
       }),
       onOnlineCount(({ count }) => setOnlineCount(count)),
@@ -95,6 +103,7 @@ export function ChatRoomPanel() {
   }, [loading, hasMore, messages]);
 
   const handleSend = useCallback(async (payload: { text?: string; files?: File[] }) => {
+    if (!user) return;
     const rawText = payload.text?.trim() || '';
     if (rawText.startsWith('/bot ')) {
       const botQuestion = rawText.replace('/bot ', '').trim();
@@ -102,10 +111,53 @@ export function ChatRoomPanel() {
         showToast('请在 /bot 后输入问题');
         return;
       }
-      const agentMessage = await sendAgentChat({ text: botQuestion, room_id: 'public', include_sources: true });
-      if (agentMessage) {
-        setMessages((prev) => (prev.some((m) => m.id === agentMessage.id) ? prev : [...prev, agentMessage]));
-      }
+      const tempUserId = nextTempId();
+      const tempAgentId = nextTempId();
+      const createdAt = new Date().toISOString();
+      const localUserMessage: ChatMessage = {
+        id: tempUserId,
+        room_id: 'public',
+        user_id: user.id,
+        content_json: [{ type: 'text', text: botQuestion, payload: { text: botQuestion } }],
+        created_at: createdAt,
+        username: user.username,
+        avatar: user.avatar || null,
+      };
+      const localAgentLoadingMessage: ChatMessage = {
+        id: tempAgentId,
+        room_id: 'public',
+        user_id: 0,
+        content_json: [{ type: 'text', text: '思考中...', payload: { text: '思考中...' } }],
+        created_at: createdAt,
+        username: '智能体',
+        is_agent: true,
+        agent_name: '机器人',
+        pending: true,
+      };
+      setMessages((prev) => [...prev, localUserMessage, localAgentLoadingMessage]);
+      void sendAgentChat({ text: botQuestion, room_id: 'public', include_sources: true })
+        .then((agentMessage) => {
+          if (!agentMessage) return;
+          setMessages((prev) => {
+            const withoutLoading = prev.filter((m) => m.id !== tempAgentId);
+            if (withoutLoading.some((m) => m.id === agentMessage.id)) return withoutLoading;
+            return [...withoutLoading, agentMessage];
+          });
+        })
+        .catch((err) => {
+          console.error('[chat] send agent failed', err);
+          showToast('机器人回复失败');
+          setMessages((prev) => prev.map((m) => (
+            m.id === tempAgentId
+              ? {
+                  ...m,
+                  pending: false,
+                  error: true,
+                  content_json: [{ type: 'text', text: '机器人回复失败，请重试。', payload: { text: '机器人回复失败，请重试。' } }],
+                }
+              : m
+          )));
+        });
       return;
     }
 
@@ -148,7 +200,7 @@ export function ChatRoomPanel() {
 
     if (parts.length === 0) return;
     await sendChatByRest({ parts, room_id: 'public' });
-  }, []);
+  }, [nextTempId, user]);
 
   if (!user || !token) {
     return (
