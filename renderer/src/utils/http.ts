@@ -5,7 +5,7 @@ import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } f
 import { useAppStore } from '../store/useAppStore';
 
 const BASE_URL = import.meta.env.PROD
-  ? 'https://39.105.137.213/server/api'
+  ? `${window.location.origin}/server/api`
   : 'http://localhost:5198/api';
 
 // 创建 axios 实例
