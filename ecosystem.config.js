@@ -21,10 +21,11 @@ module.exports = {
   {
     name: 'xTool-chat-server',
     script: 'npm',
-    args: 'run start:chat-server',
+    args: 'run start:chat-server:prod',
     cwd: '/root/.nvm/xTool',
     instances: 1,
     autorestart: true,
     watch: false,
+    max_memory_restart: '2G',
   }],
 };

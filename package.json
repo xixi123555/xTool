@@ -19,6 +19,7 @@
     "lint": "eslint \"electron/src/**/*.ts\" \"renderer/src/**/*.{ts,tsx}\"",
     "start:server": "cd server && yarn build && yarn start",
     "start:chat-server": "cd chat-server && python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt && uvicorn app.main:app --host 0.0.0.0 --port 5298 --reload",
+    "start:chat-server:prod": "cd chat-server && python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt && uvicorn app.main:app --host 0.0.0.0 --port 5298",
     "start:mcp": "cd xtool-mcp && yarn dev",
     "start:all:except-electron": "concurrently \"yarn start:chat-server\" \"yarn start:server\" \"yarn start:mcp\" \"yarn dev\"",
     "start:all": "concurrently \"yarn start:all:except-electron\" \"yarn dev:electron\"",
