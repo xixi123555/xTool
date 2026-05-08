@@ -53,6 +53,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "chromadb" },
     { name = "fastapi" },
+    { name = "markdown-chunker" },
     { name = "openai" },
     { name = "pymilvus", extra = ["milvus-lite"] },
     { name = "python-multipart" },
@@ -64,6 +65,7 @@ dependencies = [
 requires-dist = [
     { name = "chromadb", specifier = ">=1.5.8" },
     { name = "fastapi", specifier = ">=0.136.1" },
+    { name = "markdown-chunker", specifier = ">=0.1.3" },
     { name = "openai", specifier = ">=2.33.0" },
     { name = "pymilvus", extras = ["milvus-lite"], specifier = ">=2.6.12" },
     { name = "python-multipart", specifier = ">=0.0.27" },
@@ -643,6 +645,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/2c/8f/85bf51ad4150f64e8c665daf0d9dfe9787ae92005efb9a4d1cba592bd79d/kubernetes-35.0.0.tar.gz", hash = "sha256:3d00d344944239821458b9efd484d6df9f011da367ecb155dadf9513f05f09ee", size = 1094642, upload-time = "2026-01-16T01:05:27.76Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/0c/70/05b685ea2dffcb2adbf3cdcea5d8865b7bc66f67249084cf845012a0ff13/kubernetes-35.0.0-py2.py3-none-any.whl", hash = "sha256:39e2b33b46e5834ef6c3985ebfe2047ab39135d41de51ce7641a7ca5b372a13d", size = 2017602, upload-time = "2026-01-16T01:05:25.991Z" },
+]
+
+[[package]]
+name = "markdown-chunker"
+version = "0.1.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pyyaml" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f7/09/7dc5ec81c2bae6ef57cb2763ee8b044c1d873184847cd9cda134a83236c7/markdown_chunker-0.1.3.tar.gz", hash = "sha256:cc8770543a10c35ce253e5779c07c730d0e6c7c0a012e78a3af8402bb25c014b", size = 90475, upload-time = "2025-02-25T11:38:56.989Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4a/81/daaea4e64e91b7b15689d26b4222650af85f3555555a9e4f6a033c452f1d/markdown_chunker-0.1.3-py3-none-any.whl", hash = "sha256:77da642fa59680c8696157a0c12cddbd6b30b9a57acb178d577150f4c7b752d6", size = 27337, upload-time = "2025-02-25T11:38:53.856Z" },
 ]
 
 [[package]]

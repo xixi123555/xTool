@@ -1,9 +1,10 @@
 import os
 import time
 from typing import Any, NotRequired, TypedDict
-
+import uuid
 from pymilvus import MilvusClient
 from sentence_transformers import SentenceTransformer
+from markdown_chunker import MarkdownChunkingStrategy
 
 
 class Config(TypedDict):
@@ -60,11 +61,20 @@ class VectorDB:
                 dimension=self._config["dimension"],
             )
 
+    def _initMarkdownChunk(self):
+        # 初始化分片器（开启元数据，方便检索溯源）
+        self._markdownChunker = MarkdownChunkingStrategy(
+            min_chunk_len=256,
+            soft_max_len=512,
+            hard_max_len=1024,
+            add_metadata=True
+        )
+
     def initDB(self):
         """初始化向量库"""
         self._ensure_model()
         self._ensure_collection()
-
+    
     def vectorize(self, strs: list[str]):
         """向量化"""
         embeddings = self._ensure_model().encode(strs)
@@ -79,6 +89,7 @@ class VectorDB:
             insertItems.append({
                 "id": id_base + index,
                 "vector": embedding["vector"].tolist(),
+                "chunk_index": index,
                 "text": embedding["text"],
             })
         self._client.insert(self._config["knowledgeName"], insertItems)
@@ -91,6 +102,27 @@ class VectorDB:
             embedding_texts.append({
                 "vector": embeddings[idx],
                 "text": text,
+            })
+        self.insertEmbeddingDBForVector(embedding_texts)
+
+    def splitMD(self, path:str):
+        """markdown文档分片"""
+        self._initMarkdownChunk()
+        with open(path, "r", encoding="utf-8") as f:
+            mdContent = f.read()
+        return self._markdownChunker.chunk_markdown(mdContent)
+
+    def insertEmbeddingDBForMD(self, path: str):
+        """将指定路径下的md文档插入向量库"""
+        chunks = self.splitMD(path)
+        print('MD chunks:', chunks) 
+        embeddings = self.vectorize(chunks)
+        print('MD embeddings:', embeddings)
+        embedding_texts = []
+        for idx, chunk in enumerate(chunks):
+            embedding_texts.append({
+                "vector": embeddings[idx],
+                "text": chunk,
             })
         self.insertEmbeddingDBForVector(embedding_texts)
 

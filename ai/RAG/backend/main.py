@@ -87,13 +87,13 @@ async def chat(message: MessageRequestBody):
 @app.post("/upload")
 async def upload(file: UploadFile = File(...)):
     """ 文件上传接口 """
-    docs = [
-        "苹果是一种营养丰富的水果。",
-        "Python是一种简洁易学的编程语言。",
-        "机器学习是人工智能的一个重要分支。",
-        "香蕉含有丰富的钾元素。"
-    ]
-    await asyncio.to_thread(vectorDB.insertEmbeddingDBForText, docs)
+    # docs = [
+    #     "苹果是一种营养丰富的水果。",
+    #     "Python是一种简洁易学的编程语言。",
+    #     "机器学习是人工智能的一个重要分支。",
+    #     "香蕉含有丰富的钾元素。"
+    # ]
+    # await asyncio.to_thread(vectorDB.insertEmbeddingDBForText, docs)
     fileName = file.filename
     content = await file.read()
     # embeddingData = await getEmbeddingData(["如何使用bge-small-zh模型？"])
@@ -107,6 +107,9 @@ async def upload(file: UploadFile = File(...)):
     # print('66666666', results['documents'])  # 应该能返回最相关的文档块
     with open(f"./files/{fileName}", "wb") as f:
         f.write(content)
+    print('fileName:', fileName)
+    if (fileName.endswith(".md")):
+        vectorDB.insertEmbeddingDBForMD(f"./files/{fileName}")
     
     return JSONResponse({
         "message": "上传成功！"

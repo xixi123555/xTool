@@ -15,13 +15,13 @@
         @drop.prevent="handleDrop"
       >
         <div class="text-5xl mb-3">📁</div>
-        <p class="text-base text-gray-800 mb-1.5">拖拽 .txt 文件到此处</p>
+        <p class="text-base text-gray-800 mb-1.5">拖拽 .txt / .md 文件到此处</p>
         <p class="text-[13px] text-gray-400 mb-4">或点击下方按钮选择文件</p>
         <label class="inline-block py-2 px-7 bg-green-500 text-white rounded-md text-sm cursor-pointer transition-colors hover:bg-green-600">
           选择文件
           <input
             type="file"
-            accept=".txt,text/plain"
+            accept=".txt,.md,.markdown,text/plain,text/markdown"
             multiple
             @change="handleFileSelect"
             hidden
@@ -65,7 +65,7 @@
 
       <!-- 空状态 -->
       <div v-else class="mt-5 flex items-center justify-center text-gray-300 text-sm py-10">
-        <p>暂无文件，请上传 .txt 文件</p>
+        <p>暂无文件，请上传 .txt 或 Markdown（.md）文件</p>
       </div>
 
       <!-- 上传按钮 -->
@@ -101,8 +101,17 @@ function formatSize(bytes) {
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
 }
 
+const markdownMime = new Set(['text/markdown', 'text/x-markdown', 'text/md'])
+
 function isValidFile(file) {
-  return file.type === 'text/plain' || file.name.endsWith('.txt')
+  const name = (file.name || '').toLowerCase()
+  return (
+    name.endsWith('.txt') ||
+    name.endsWith('.md') ||
+    name.endsWith('.markdown') ||
+    file.type === 'text/plain' ||
+    markdownMime.has(file.type)
+  )
 }
 
 function addFiles(fileList) {

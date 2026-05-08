@@ -1,10 +1,42 @@
 from openai import OpenAI
 import json
 import copy
+import textwrap
+import httpx
 import requests
 import inspect
 
-client = OpenAI(api_key='sk-a971f9950cab4a1b8adacd3ac33998df', base_url="https://api.deepseek.com")
+# 1. 定义日志钩子函数
+def log_request_details(response: httpx.Response):
+    request = response.request
+    print(f"--- Request: {request.method} {request.url} ---")
+    
+    # 打印 Header (可选：脱敏处理)
+    for key, value in request.headers.items():
+        if key.lower() == "authorization":
+            value = "Bearer sk-***"
+        print(f"  Header {key}: {value}")
+    
+    # 打印请求体 (Body)
+    if request.content:
+        print("  Request Body:")
+        try:
+            body_json = json.loads(request.content)
+            print(textwrap.indent(json.dumps(body_json, indent=2), "    "))
+        except:
+            print(textwrap.indent(request.content.decode(), "    "))
+            
+    print(f"--- Response: {response.status_code} ---")
+
+# 2. 创建带有日志钩子的 HTTPX 客户端
+httpx_client = httpx.Client(
+    event_hooks={
+        "response": [log_request_details]  # 在收到响应时触发钩子
+    }
+)
+
+
+client = OpenAI(api_key='sk-a971f9950cab4a1b8adacd3ac33998df', base_url="https://api.deepseek.com", http_client=httpx_client)
 
 systemPrompt = """
 你是一个助手，可以决定是否调用工具。
