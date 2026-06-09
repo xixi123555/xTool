@@ -36,7 +36,7 @@ httpx_client = httpx.Client(
 )
 
 
-client = OpenAI(api_key='sk-a971f9950cab4a1b8adacd3ac33998df', base_url="https://api.deepseek.com", http_client=httpx_client)
+client = OpenAI(api_key='', base_url="https://api.deepseek.com", http_client=httpx_client)
 
 systemPrompt = """
 你是一个助手，可以决定是否调用工具。

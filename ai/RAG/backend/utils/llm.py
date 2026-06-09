@@ -8,7 +8,7 @@ class Config(TypedDict):
     modelName: NotRequired(str)
 
 defaultConfig: Config = {
-    "apiKey": "sk-a971f9950cab4a1b8adacd3ac33998df",
+    "apiKey": "",
     "url": "https://api.deepseek.com",
     "modelName": "deepseek-v4-pro"
 }
