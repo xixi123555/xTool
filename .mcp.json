@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "xtool": {
+      "type": "http",
+      "url": "http://localhost:5197/mcp",
+      "headers": {
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImlhdCI6MTc4NDc3Nzk5OCwiZXhwIjoxNzg1MzgyNzk4fQ.Ur000W7H3q4yf8E8m0-ok5qEYP69xBrFVPdjrg3u0ow"
+      }
+    }
+  }
+}

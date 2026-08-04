@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(npm install:*)",
+      "Bash(npx tsx:*)",
+      "Bash(node dist/index.js)",
+      "Bash(python3:*)",
+      "mcp__xtool__bookkeeping_add_expense",
+      "Read(//Users/tangxixi/.nvm/versions/node/**)",
+      "Bash(pyenv versions:*)",
+      "Bash(brew list:*)",
+      "Read(//usr/local/bin/**)",
+      "Read(//opt/homebrew/**)",
+      "Bash(pyenv install:*)",
+      "WebSearch",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5197/mcp)"
+    ]
+  },
+  "enableAllProjectMcpServers": true
+}

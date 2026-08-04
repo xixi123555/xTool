@@ -174,4 +174,4 @@ export const routes: RouteConfig[] = [
 ];
 
 // 默认路由
-export const defaultRoute = '/chat/room';
+export const defaultRoute = '/bookkeeping';
