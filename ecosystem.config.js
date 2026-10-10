@@ -8,24 +8,24 @@ module.exports = {
     autorestart: true,       // 自动重启
     watch: false,            // 是否监听文件变化
     max_memory_restart: '1G', // 内存超过 1G 重启
-  },
-  {
-    name: 'xTool-mcp',
-    script: 'npm',
-    args: 'run start:mcp',
-    cwd: '/root/.nvm/xTool',
-    instances: 1,
-    autorestart: true,
-    watch: false,
-  },
-  {
-    name: 'xTool-chat-server',
-    script: 'npm',
-    args: 'run start:chat-server:prod',
-    cwd: '/root/.nvm/xTool',
-    instances: 1,
-    autorestart: true,
-    watch: false,
-    max_memory_restart: '2G',
   }],
+  // {
+  //   name: 'xTool-mcp',
+  //   script: 'npm',
+  //   args: 'run start:mcp',
+  //   cwd: '/root/.nvm/xTool',
+  //   instances: 1,
+  //   autorestart: true,
+  //   watch: false,
+  // },
+  // {
+  //   name: 'xTool-chat-server',
+  //   script: 'npm',
+  //   args: 'run start:chat-server:prod',
+  //   cwd: '/root/.nvm/xTool',
+  //   instances: 1,
+  //   autorestart: true,
+  //   watch: false,
+  //   max_memory_restart: '2G',
+  // }],
 };

@@ -43,7 +43,7 @@ export function Sidebar({ onSettingsClick, onClose }: SidebarProps) {
       <div className="flex-shrink-0 p-6 pb-4 space-y-1 flex items-start justify-between gap-2">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">xTool</h1>
-          <p className="text-sm text-slate-500">多种实用工具</p>
+          <p className="text-sm text-slate-500">多种实用工具1</p>
         </div>
         {onClose && (
           <button
