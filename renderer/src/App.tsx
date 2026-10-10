@@ -13,6 +13,7 @@ import { useState, useEffect } from 'react';
 import { useAppStore } from './store/useAppStore';
 import { useIpcEvent } from './hooks/useIpcEvent';
 import { showToast } from './components/toast/Toast';
+import { saveLoginRedirect } from './utils/loginRedirect';
 
 const MENU_OPEN_KEY = 'xtool_menu_open';
 
@@ -146,8 +147,12 @@ function MainApp() {
     return null;
   }
 
-  // 如果未登录，重定向到登录页
+  // 如果未登录，重定向到登录页（先记住当前路径，登录成功后回跳）
   if (!user || !token) {
+    // 这里只是幂等的 sessionStorage 写入，放在渲染中可确保跳转前已记录目标路径
+    if (location.pathname !== '/') {
+      saveLoginRedirect(`${location.pathname}${location.search}${location.hash}`);
+    }
     return <Navigate to="/login" replace />;
   }
 

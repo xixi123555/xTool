@@ -12,6 +12,7 @@ import {
   type LoginHistoryItem,
 } from '../../utils/loginHistory';
 import { AutoCompleteInput } from '../../components/login/AutoCompleteInput';
+import { consumeLoginRedirect } from '../../utils/loginRedirect';
 
 const REMEMBER_PASSWORD_KEY = 'xtool_remember_password';
 
@@ -205,8 +206,8 @@ export function LoginPage() {
             }
           }, 500);
         }
-        // 导航到主页面
-        navigate(defaultRoute);
+        // 导航到主页面；若此前访问的深链接被登录流程中断，优先回跳该页面
+        navigate(consumeLoginRedirect(defaultRoute));
       }
     } catch (error: any) {
       console.error('登录错误:', error);
@@ -282,8 +283,8 @@ export function LoginPage() {
             }
           }, 500);
         }
-        // 导航到主页面
-        navigate(defaultRoute);
+        // 导航到主页面；若此前访问的深链接被登录流程中断，优先回跳该页面
+        navigate(consumeLoginRedirect(defaultRoute));
       }
     } catch (error: any) {
       console.error('注册错误:', error);
@@ -342,8 +343,8 @@ export function LoginPage() {
             }
           }, 500);
         }
-        // 导航到主页面
-        navigate(defaultRoute);
+        // 导航到主页面；若此前访问的深链接被登录流程中断，优先回跳该页面
+        navigate(consumeLoginRedirect(defaultRoute));
       }
     } catch (error: any) {
       console.error('路人登录错误:', error);
@@ -454,8 +455,8 @@ export function LoginPage() {
             }
           }, 500);
         }
-        // 导航到主页面
-        navigate(defaultRoute);
+        // 导航到主页面；若此前访问的深链接被登录流程中断，优先回跳该页面
+        navigate(consumeLoginRedirect(defaultRoute));
       }
     } catch (error: any) {
       console.error('验证码登录错误:', error);

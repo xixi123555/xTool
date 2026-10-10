@@ -3,6 +3,7 @@
  */
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import { useAppStore } from '../store/useAppStore';
+import { saveCurrentLocationForLogin } from './loginRedirect';
 
 const BASE_URL = import.meta.env.PROD
   ? `${window.location.origin}/server/api`
@@ -58,6 +59,8 @@ httpClient.interceptors.response.use(
         const requestUrl = error.config?.url || '';
         const isAuthPath = AUTH_PATHS.some((path) => requestUrl.includes(path));
         if (!isAuthPath) {
+          // 这里是整页跳转，会丢掉当前路径，先记录以便登录成功后回跳
+          saveCurrentLocationForLogin();
           useAppStore.getState().logout();
           window.location.pathname = '/login';
         }
