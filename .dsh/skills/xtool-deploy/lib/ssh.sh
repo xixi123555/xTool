@@ -6,6 +6,19 @@ xt_shell_quote() {
   printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"
 }
 
+# 远程非登录 shell 不加载 nvm（bash 只读 $BASH_ENV，不读 ~/.bashrc），
+# node/pnpm/pm2 因此不在 PATH 里，远程脚本会在“检查运行时”那步误判未安装。
+# 统一在远程命令前补一段 PATH 探测，避免每个远程脚本各自处理。
+xt_remote_path_bootstrap() {
+  cat <<'BOOTSTRAP'
+for d in /root/.nvm/versions/node/*/bin; do
+  [ -x "$d/node" ] || continue
+  case ":$PATH:" in *":$d:"*) ;; *) PATH="$d:$PATH" ;; esac
+done;
+export PATH;
+BOOTSTRAP
+}
+
 xt_ssh_args() {
   # 输出一行一个参数，供数组读取，避免 eval
   printf '%s\n' \
@@ -22,6 +35,10 @@ xt_ssh_args() {
 
 xt_ssh_run() {
   local remote_command="$1"
+  local bootstrap
+  bootstrap="$(xt_remote_path_bootstrap)"
+  # 补 PATH 后拼接原命令：远程脚本与临时命令都能用到 nvm 里的 node/pnpm/pm2
+  remote_command="$bootstrap $remote_command"
   local -a args=()
   local line
   while IFS= read -r line; do
