@@ -83,6 +83,7 @@ export XTOOL_DEPLOY_BRANCH='main'
 export XTOOL_DEPLOY_REMOTE='origin'
 export XTOOL_DEPLOY_PM2_CONFIG='ecosystem.config.cjs'
 export XTOOL_DEPLOY_IDENTITY_FILE=''   # 配好后可改用密钥免密
+export XTOOL_DEPLOY_REMOTE_ENV=''      # 远程命令额外环境变量，形如 KEY=value KEY2=value2
 ```
 
 `~/.zshrc` 中已有自动加载：
@@ -128,6 +129,8 @@ pm2 直接执行构建后的 `dist/index.js`，不依赖运行时 pnpm。发布�
 | `Permission denied`                    | 检查 `XTOOL_DEPLOY_USER` / `XTOOL_DEPLOY_PASSWORD`；服务器是否禁用密码登录                                           |
 | 服务器 `git pull` 失败                 | 服务器访问 GitHub 不稳定时可改走 `--no-pull`，或先在服务器修好 remote/凭据                                           |
 | `pnpm: command not found`              | skill 会执行 `corepack enable`；若仍失败，先在服务器安装 Node 20+ 与 corepack                                        |
+| 远程报 `node 未安装` / `pm2 未安装`    | 非登录 SSH shell 不加载 nvm，skill 已在每条远程命令前自动补 `~/.nvm/versions/node/*/bin` 到 PATH                     |
+| `pnpm install` 卡在 `ffmpeg-static`    | 该包从 GitHub Releases 拉二进制，国内直连仅 20–30 KB/s；把 `XTOOL_DEPLOY_REMOTE_ENV` 设为官方支持的下载镜像变量即可  |
 | `pm2` 进程 `errored`                   | `logs server --lines 120` 看堆栈；常见为 `.env` 缺失或数据库连不上                                                   |
 | Web 200 但页面空白                     | 检查 `index.html` 回退规则、静态目录是否同步、浏览器控制台资源 404                                                   |
 | 发布后 chat/mcp 不健康                 | 检查 `chat-server/.venv`、`apps/mcp/.env`、端口占用与 pm2 日志                                                       |

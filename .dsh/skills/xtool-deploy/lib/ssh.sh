@@ -6,7 +6,7 @@ xt_shell_quote() {
   printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"
 }
 
-# 远程非登录 shell 不加载 nvm（bash 只读 $BASH_ENV，不读 ~/.bashrc），
+# 远程非登录 shell 不加载 nvm（bash 只读 ${BASH_ENV}，不读 ~/.bashrc），
 # node/pnpm/pm2 因此不在 PATH 里，远程脚本会在“检查运行时”那步误判未安装。
 # 统一在远程命令前补一段 PATH 探测，避免每个远程脚本各自处理。
 xt_remote_path_bootstrap() {
@@ -17,6 +17,14 @@ for d in /root/.nvm/versions/node/*/bin; do
 done;
 export PATH;
 BOOTSTRAP
+}
+
+# 远程命令可附带自定义环境变量（如把 ffmpeg 二进制下载源指向国内镜像），
+# 值来自 ${XTOOL_DEPLOY_REMOTE_ENV}，形如 "KEY=value KEY2=value2"；
+# 值里含空格时由调用方自己加引号。
+xt_remote_env_passthrough() {
+  [ -n "${XTOOL_DEPLOY_REMOTE_ENV:-}" ] || return 0
+  printf 'export %s;\n' "$XTOOL_DEPLOY_REMOTE_ENV"
 }
 
 xt_ssh_args() {
@@ -36,8 +44,8 @@ xt_ssh_args() {
 xt_ssh_run() {
   local remote_command="$1"
   local bootstrap
-  bootstrap="$(xt_remote_path_bootstrap)"
-  # 补 PATH 后拼接原命令：远程脚本与临时命令都能用到 nvm 里的 node/pnpm/pm2
+  bootstrap="$(xt_remote_path_bootstrap)$(xt_remote_env_passthrough)"
+  # 补 PATH 与自定义环境变量后拼接原命令：远程脚本与临时命令都能用到 nvm 里的 node/pnpm/pm2
   remote_command="$bootstrap $remote_command"
   local -a args=()
   local line
