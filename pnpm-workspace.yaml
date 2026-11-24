@@ -1,0 +1,5 @@
+packages:
+  - apps/web
+  - apps/server
+  - apps/mcp
+  - packages/shared

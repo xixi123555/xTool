@@ -1,0 +1,190 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --canvas: 247 248 250;
+    --surface: 255 255 255;
+    --muted: 243 244 246;
+    --line: 229 231 235;
+    --fg: 17 24 39;
+    --subtle: 107 114 128;
+    --accent: 79 70 229;
+    --accent-hover: 67 56 202;
+    --accent-soft: 238 242 255;
+    --accent-fg: 255 255 255;
+    --danger: 220 38 38;
+    --danger-soft: 254 242 242;
+    --success: 22 163 74;
+    --success-soft: 240 253 244;
+    --warning: 217 119 6;
+    --warning-soft: 255 251 235;
+    color-scheme: light;
+  }
+
+  .dark {
+    --canvas: 13 15 20;
+    --surface: 23 26 33;
+    --muted: 31 35 44;
+    --line: 45 50 61;
+    --fg: 237 239 243;
+    --subtle: 148 155 168;
+    --accent: 129 140 248;
+    --accent-hover: 165 180 252;
+    --accent-soft: 35 39 64;
+    --accent-fg: 17 20 28;
+    --danger: 248 113 113;
+    --danger-soft: 55 29 32;
+    --success: 74 222 128;
+    --success-soft: 25 51 36;
+    --warning: 251 191 36;
+    --warning-soft: 55 43 17;
+    color-scheme: dark;
+  }
+
+  * {
+    border-color: rgb(var(--line));
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-canvas font-sans text-fg antialiased;
+    overflow: hidden;
+  }
+
+  input,
+  textarea,
+  select,
+  button {
+    font: inherit;
+  }
+
+  ::selection {
+    background: rgb(var(--accent) / 0.22);
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(var(--accent) / 0.55);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-line bg-surface shadow-card;
+  }
+
+  .field {
+    @apply w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-fg outline-none transition placeholder:text-subtle focus:border-accent/60 focus:ring-4 focus:ring-accent/10 disabled:cursor-not-allowed disabled:bg-muted disabled:text-subtle;
+  }
+
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-fg;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply btn bg-accent text-accent-fg hover:bg-accent-hover;
+  }
+
+  .btn-secondary {
+    @apply btn border border-line bg-surface text-fg hover:bg-muted;
+  }
+
+  .btn-ghost {
+    @apply btn text-subtle hover:bg-muted hover:text-fg;
+  }
+
+  .btn-danger {
+    @apply btn bg-danger text-white hover:opacity-90;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full border border-line bg-surface px-3 py-1.5 text-sm text-subtle transition hover:border-accent/50 hover:text-fg;
+  }
+
+  .chip-active {
+    @apply border-accent/40 bg-accent-soft text-accent;
+  }
+
+  .section-title {
+    @apply text-sm font-semibold text-fg;
+  }
+
+  .meta {
+    @apply text-xs text-subtle;
+  }
+}
+
+@layer utilities {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--line)) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background: rgb(var(--line));
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 160ms ease-out both;
+}
+
+.animate-sheet-up {
+  animation: sheet-up 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}

@@ -1,0 +1,11 @@
+node_modules
+dist
+coverage
+pnpm-lock.yaml
+*.min.js
+apps/server/uploads
+chat-server
+ai
+.claude
+.cursor
+test.json

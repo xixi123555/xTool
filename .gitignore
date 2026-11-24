@@ -9,8 +9,10 @@ yarn-error.log
 coverage
 release
 uploads/
-server/.env
-xtool-mcp/.env
+.env
+apps/server/.env
+apps/mcp/.env
+.mcp.json
 # Python / chat-server
 chat-server/.venv/
 chat-server/__pycache__/

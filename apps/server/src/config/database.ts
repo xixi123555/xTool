@@ -1,0 +1,255 @@
+/**
+ * 数据库配置和连接
+ */
+import mysql from 'mysql2/promise';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+interface DatabaseConfig {
+  host: string;
+  port: number;
+  user: string;
+  password: string;
+  database: string;
+  waitForConnections: boolean;
+  connectionLimit: number;
+  queueLimit: number;
+}
+
+const dbConfig: DatabaseConfig = {
+  host: process.env.DB_HOST || 'localhost',
+  port: parseInt(process.env.DB_PORT || '3306', 10),
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'xtool_db',
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+};
+
+// 创建连接池
+const pool = mysql.createPool(dbConfig);
+
+/**
+ * 初始化数据库表
+ */
+export async function initDatabase(): Promise<void> {
+  try {
+    // 创建用户表
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(50) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        email VARCHAR(100),
+        avatar TEXT,
+        user_type ENUM('normal', 'guest') DEFAULT 'normal',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    // 如果表已存在，添加 avatar 字段（如果不存在）
+    try {
+      await pool.execute(`
+        ALTER TABLE users 
+        ADD COLUMN avatar TEXT
+      `);
+    } catch (error: any) {
+      // 如果字段已存在，忽略错误
+      if (error.message?.includes('Duplicate column name') || error.code === 'ER_DUP_FIELDNAME') {
+        console.log('avatar 字段已存在，跳过添加');
+      } else {
+        console.warn('添加 avatar 字段时出错:', error.message);
+      }
+    }
+
+    // 创建 appKey 表
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS app_keys (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        key_name VARCHAR(100) NOT NULL,
+        app_key VARCHAR(255) NOT NULL,
+        workflow_type VARCHAR(50) NOT NULL,
+        description TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        INDEX idx_user_id (user_id),
+        INDEX idx_workflow_type (workflow_type)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    // 如果表已存在，添加 description 字段（如果不存在）
+    try {
+      await pool.execute(`
+        ALTER TABLE app_keys 
+        ADD COLUMN description TEXT
+      `);
+    } catch (error: any) {
+      // 如果字段已存在，忽略错误
+      if (error.message?.includes('Duplicate column name') || error.code === 'ER_DUP_FIELDNAME') {
+        console.log('description 字段已存在，跳过添加');
+      } else {
+        console.warn('添加 description 字段时出错:', error.message);
+      }
+    }
+
+    // 创建应用配置表
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS appsetting (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        theme VARCHAR(20) DEFAULT 'system' COMMENT '主题配置：light / dark / system',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        UNIQUE KEY uk_user_id (user_id),
+        INDEX idx_user_id (user_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    // 兼容旧库：确保 appsetting 有 theme 字段
+    try {
+      await pool.execute(
+        `ALTER TABLE appsetting ADD COLUMN theme VARCHAR(20) DEFAULT 'system' COMMENT '主题配置：light / dark / system'`,
+      );
+    } catch (error: any) {
+      if (error.message?.includes('Duplicate column name') || error.code === 'ER_DUP_FIELDNAME') {
+        // 字段已存在，无需处理
+      } else {
+        console.warn('添加 theme 字段时出错:', error.message);
+      }
+    }
+
+    // 创建 MCP Key 表（用于替代 JWT 调用 MCP）
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS mcp_keys (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        key_hash VARCHAR(64) NOT NULL COMMENT 'SHA-256 hash（明文不落库）',
+        key_hint VARCHAR(50) NOT NULL COMMENT '用于列表展示的掩码信息',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        UNIQUE KEY uk_key_hash (key_hash),
+        INDEX idx_user_id (user_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    // 创建待办事项卡片表
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS todo_cards (
+        id VARCHAR(100) PRIMARY KEY,
+        user_id INT NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        starred BOOLEAN DEFAULT FALSE,
+        tags JSON,
+        deleted BOOLEAN DEFAULT FALSE COMMENT '逻辑删除标记',
+        created_at BIGINT NOT NULL,
+        updated_at BIGINT NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        INDEX idx_user_id (user_id),
+        INDEX idx_deleted (deleted),
+        INDEX idx_starred (starred)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    // 创建待办事项项表
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS todo_items (
+        id VARCHAR(100) PRIMARY KEY,
+        card_id VARCHAR(100) NOT NULL,
+        content TEXT NOT NULL,
+        completed BOOLEAN DEFAULT FALSE,
+        deleted BOOLEAN DEFAULT FALSE COMMENT '逻辑删除标记',
+        created_at BIGINT NOT NULL,
+        updated_at BIGINT NOT NULL,
+        FOREIGN KEY (card_id) REFERENCES todo_cards(id) ON DELETE CASCADE,
+        INDEX idx_card_id (card_id),
+        INDEX idx_deleted (deleted)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    // 创建记账表（多人共同维护）
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS bookkeeping_records (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL COMMENT '创建者，支持多人共同维护',
+        purpose VARCHAR(100) NOT NULL COMMENT '用途/分类',
+        description VARCHAR(500) DEFAULT '' COMMENT '说明/备注',
+        amount DECIMAL(12,2) NOT NULL COMMENT '金额',
+        type ENUM('expense', 'income') NOT NULL DEFAULT 'expense' COMMENT '类型：支出/收入',
+        record_date DATE NOT NULL COMMENT '记账日期',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        INDEX idx_user_id (user_id),
+        INDEX idx_record_date (record_date),
+        INDEX idx_type (type)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    // 记账用途表（可编辑标签，is_default 表示是否默认选中）
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS bookkeeping_purposes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100) NOT NULL COMMENT '用途名称',
+        is_default TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否默认用途，仅有一个可为 1',
+        sort_order INT NOT NULL DEFAULT 0 COMMENT '排序，数字越小越靠前',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uk_name (name),
+        INDEX idx_is_default (is_default)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    // 记账附件表（图片/文件）
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS bookkeeping_attachments (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        record_id INT NOT NULL COMMENT '关联的记账记录',
+        filename VARCHAR(255) NOT NULL COMMENT '服务器存储文件名（唯一）',
+        original_name VARCHAR(255) NOT NULL COMMENT '原始文件名',
+        mime_type VARCHAR(100) NOT NULL COMMENT 'MIME 类型',
+        file_size INT NOT NULL COMMENT '文件大小（字节）',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (record_id) REFERENCES bookkeeping_records(id) ON DELETE CASCADE,
+        INDEX idx_record_id (record_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    // 若无任何用途，插入默认用途「装修」
+    const [purposesRows] = (await pool.execute(
+      `SELECT COUNT(*) AS cnt FROM bookkeeping_purposes`,
+    )) as [any[], any];
+    if (purposesRows[0].cnt === 0) {
+      await pool.execute(
+        `INSERT INTO bookkeeping_purposes (name, is_default, sort_order) VALUES ('装修', 1, 0)`,
+      );
+    }
+
+    // 创建聊天消息表
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS chat_messages (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        room_id VARCHAR(100) NOT NULL DEFAULT 'public' COMMENT '聊天室ID，默认公共聊天室',
+        user_id INT NOT NULL COMMENT '发送者',
+        content_json JSON NOT NULL COMMENT '消息内容 parts 结构，如 [{"type":"text","text":"hello"}]',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        INDEX idx_room_id (room_id),
+        INDEX idx_created_at (created_at)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    console.log('数据库表初始化成功');
+  } catch (error) {
+    console.error('数据库初始化失败:', error);
+    throw error;
+  }
+}
+
+export default pool;

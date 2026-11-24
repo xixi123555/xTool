@@ -1,220 +1,192 @@
 # xTool
 
-xTool 是一个基于 Electron + React 的开发者效率工具集，当前内置剪贴板历史管理、JSON 格式化、记账、股票查询等能力，可按需扩展更多 Panel。主界面右侧为可收起菜单抽屉，收起后通过右上角可拖动的悬浮按钮（显示头像或用户名）重新打开。
+xTool 是一个纯 Web 的个人效率工作台：记账、待办、聊天室、知识库、智能体编排与一组常用小工具。
 
-## 快速开始
+项目已移除 Electron 桌面端，不再依赖 IPC、剪贴板历史、截图历史与全局快捷键；浏览器访问即可使用，所有页面均为 React。
 
-### 环境要求
+## 技术栈
 
-- Node.js >= 18
-- Yarn 1 (通过 `corepack enable` 或直接安装)
+| 层                | 选型                                                        |
+| ----------------- | ----------------------------------------------------------- |
+| 包管理 / Monorepo | pnpm workspace                                              |
+| Web               | React 18 + TypeScript + Vite + Tailwind CSS + Zustand       |
+| 业务 API          | Node.js + Express + MySQL                                   |
+| 实时聊天          | Python FastAPI + Socket.IO                                  |
+| MCP               | TypeScript + `@modelcontextprotocol/sdk`（Streamable HTTP） |
+| 质量              | ESLint 9 + Prettier + Vitest + `tsc --noEmit`               |
 
-### 安装依赖
+## 目录结构
+
+```text
+.
+├─ apps/
+│  ├─ web/                 # React Web 应用
+│  │  └─ src/
+│  │     ├─ app/           # 路由、守卫、主题副作用
+│  │     ├─ features/      # 按领域拆分的页面（记账、待办、工具、聊天、设置）
+│  │     └─ shared/        # 设计令牌、UI 组件、hooks、HTTP、store
+│  ├─ server/              # Express 业务服务
+│  └─ mcp/                 # MCP Streamable HTTP 服务
+├─ packages/shared/        # 前后端共享的领域类型与常量
+├─ chat-server/            # Python 实时聊天服务
+├─ ai/                     # 个人 AI 实验代码，不参与 Web 构建
+├─ pnpm-workspace.yaml
+└─ ecosystem.config.cjs    # pm2 生产进程配置
+```
+
+## 环境要求
+
+- Node.js >= 20.19
+- pnpm 10（`corepack enable` 后会自动使用 `packageManager` 指定的版本）
+- MySQL 8+
+- Python 3.11+（仅聊天室 / 知识库需要）
+
+## 安装与开发
 
 ```bash
-yarn install
+pnpm install
+
+# 启动 Web + 业务 API + MCP
+pnpm dev
+
+# 或分别启动
+pnpm dev:web      # http://localhost:5199
+pnpm dev:server   # http://localhost:5198
+pnpm dev:mcp      # http://localhost:5197/mcp
+pnpm start:chat-server  # http://localhost:5298
 ```
 
-### 开发模式
+Web 开发服务器通过 Vite 代理访问后端：
+
+- `/api` → `http://localhost:5198`
+- `/chatServer` → `http://localhost:5298`（含 WebSocket）
+
+## 环境变量
+
+仓库不再提交任何真实 `.env` 或 `.mcp.json`。请复制示例文件后填写：
 
 ```bash
-yarn dev
+cp apps/server/.env.example apps/server/.env
+cp apps/mcp/.env.example apps/mcp/.env
+cp .mcp.json.example .mcp.json   # 可选：Cursor MCP 配置
 ```
 
-该命令将并行启动：
+业务服务常用变量：
 
-- `renderer` 工作空间的 Vite 开发服务器（默认端口 5199）
-- `electron` 工作空间的主进程构建与 Electron 应用
-
-Electron 会在 `renderer` 构建完成后自动连接到 Vite 服务，实现热重载体验。
-
-### 构建与打包
-
-- 仅构建：
-
-  ```bash
-yarn build
-  ```
-
-  会依次执行 `renderer`、`electron`、`packages/shared` 的 TypeScript/Vite 构建，产出分别位于：
-
-  - `renderer/dist`
-  - `electron/dist`
-  - `packages/shared/dist`
-
-- 生成安装包：
-
-  ```bash
-yarn dist
-  ```
-
-  在执行完所有构建后，调用 `electron-builder` 根据 `electron-builder.yml` 生成应用安装包。
-
-  - macOS 生成 `dmg` 与 `zip`
-  - Windows 生成 `nsis`
-
-构建结果默认输出到 `dist/` 目录。
-
-## 项目结构
-
-```
-├─ electron/              # Electron 主进程源码（TypeScript）
-│  ├─ src/
-│  │  ├─ clipboard/       # 剪贴板监听与持久化
-│  │  ├─ utils/
-│  │  ├─ main.ts          # 应用入口，创建窗口与注册 IPC
-│  │  └─ preload.ts       # 预加载脚本，向 renderer 暴露 API
-│  └─ dist/               # 主进程编译产物
-├─ renderer/              # React 渲染进程（Vite + Tailwind）
-│  ├─ src/
-│  │  ├─ components/
-│  │  ├─ hooks/
-│  │  ├─ store/
-│  │  ├─ page/
-│  │  │  ├─ app-setting/  # 应用配置页面
-│  │  │  └─ ...
-│  │  └─ App.tsx
-│  └─ dist/               # 渲染端打包产物
-├─ server/                # 后端服务（Express + MySQL）
-│  ├─ src/
-│  │  ├─ models/          # 数据模型
-│  │  │  ├─ AppSetting.ts # 应用配置模型
-│  │  │  └─ ...
-│  │  ├─ routes/          # 路由
-│  │  │  ├─ appSetting.ts # 应用配置路由
-│  │  │  └─ ...
-│  │  └─ config/          # 数据库配置
-│  └─ ...
-├─ packages/shared/       # 主/渲染进程共享的类型定义与工具
-├─ resources/             # electron-builder 需要的图标等静态资源
-├─ electron-builder.yml   # 打包配置
-├─ tsconfig.base.json     # 所有工作空间共享的 TS 基础配置
-└─ README.md
+```env
+PORT=5198
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=
+DB_NAME=xtool_db
+JWT_SECRET=change_me
+SMTP_HOST=smtp.qq.com
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASS=
+MAIRUI_LICENSE=
+ANTHROPIC_API_KEY=
 ```
 
-## 开发约定
-
-### TypeScript 配置
-
-- 根目录 `tsconfig.base.json` 定义共有配置与路径别名：
-  - `baseUrl: .` + `paths.devtools-suite-shared -> packages/shared/src`
-- `electron/tsconfig.json` 追加：
-  - `module/moduleResolution: NodeNext`
-  - `baseUrl: ./src` 以避免与根目录工作空间同名冲突
-- `renderer/tsconfig.json` 引入 `../electron/src/types`（如有自定义类型声明可统一维护）
-
-### 代码组织
-
-- **Electron 主进程**
-  - 保持模块化：`clipboard`、`utils` 等按功能拆分
-  - 通过 `preload.ts` 向渲染端暴露受控 API，遵循 `contextIsolation` + `sandbox`=false 的安全原则
-  - 与 ESM-only 依赖交互时采用动态导入（如 `electron-store`）
-
-- **Renderer (React)**
-  - Vite + React + Zustand 状态管理
-  - 所有组件使用 Tailwind Utility class，复用 `btn-primary` 等自定义 className
-  - IPC 交互通过 `window.api` 包装，React 组件不直接访问 Node API
-
-- **共享包 `packages/shared`**
-  - 仅包含纯 TypeScript 类型或无副作用工具函数，供主进程与渲染进程同时引用
-
-### 命名与样式
-
-- 变量/函数使用完整语义名词/动词组合，避免单字符缩写
-- React 组件文件名采用 PascalCase，对外导出的组件与文件名保持一致
-- 新增 Panel 时，遵循：
-  - 在 `renderer/src/components` 下新增对应文件/子目录
-  - 在 `renderer/src/store` 中扩展 Zustand Store 状态
-  - 通过 `Sidebar` 注册入口按钮
-  - 在主进程根据业务需求注册新的 IPC handler
-
-### 调试建议
-
-- 开发模式下可使用 Chrome DevTools 直接连接 Vite
-- Electron 主进程日志保存在 `app.getPath('userData')/logs/main.log`
-- 若需调试 preload 或主进程，可在执行 `yarn dev` 后手动开启 `chrome://inspect`
-
-## 常见问题
-
-- 如果 TypeScript 提示找不到 `electron` 类型，确认 `electron/tsconfig.json` 中的 `baseUrl` 为 `./src`
-- 若遇到 `ERR_REQUIRE_ESM`，说明在 CommonJS 环境下引入了 ESM-only 包，按照 `electron/src/clipboard/store.ts` 示例改用动态导入
-
----
-
-## 账号与登录
-
-- 登录后颁发的 JWT 有效期为 **7 天**，7 天内重新打开应用无需再次登录。
-- 超过 7 天后 token 过期，任意需要认证的请求将收到 401 响应，应用会自动清空登录状态并跳转到登录页，用户重新登录后继续使用。
-- 支持账号密码登录、邮箱验证码登录及路人身份登录，三种方式均受 7 天免登策略保护。
-
----
-
-## 功能特性
-
-### 应用配置
-
-用户可以在设置页面的"应用配置"标签页中管理应用的各项配置：
-
-- **数据源设置**：选择使用本地数据还是在线数据
-  - 使用本地数据（默认）：数据存储在本地，不进行云端同步
-  - 使用在线数据：数据同步到服务器，可在多设备间共享
-
-应用配置会保存在数据库中（`appsetting` 表），每个用户拥有独立的配置。配置信息也会缓存在前端的 Zustand Store 中，方便快速读取。
-
-### 记账
-
-- 记账记录与**用途**均保存在服务端（MySQL）。
-- **用途**为可编辑标签：在记账页点击「管理用途」可新增、编辑、删除用途，并可设置某一项为「默认用途」；默认用途会在表单中优先展示，数据库表 `bookkeeping_purposes` 使用 `is_default` 字段标记，初始化时默认用途为「装修」。
-
-### 聊天室
-
-- 基于 Socket.IO 的实时聊天室，所有进入页面的用户自动加入公共聊天室。
-- 消息布局：本人消息靠右，他人消息靠左，显示头像/昵称与发送时间。
-- 支持 Enter 发送、自动滚动到底部、断线重连提示。
-- 后端消息模型采用 `parts[]` 结构（`text`/`image`），为未来多模态消息预留。
-- MCP 工具支持通过 AI 客户端发送聊天消息与查询历史记录。
-- 相关日志：后端在 `[chat]` 前缀下输出连接/断开/发送/广播事件，便于排障。
-
----
-
-## MCP 服务
-
-xTool 提供独立的 MCP (Model Context Protocol) 服务，通过 **Streamable HTTP** 协议对外暴露远程 MCP 端点，供 Cursor、Claude Desktop 等 AI 客户端调用记账、待办、网页阅读等功能。
-
-### 快速开始
+## 构建
 
 ```bash
-cd xtool-mcp
-npm install
-npm run build
-npm start
+pnpm build
 ```
 
-启动后 MCP 端点默认运行在 `http://0.0.0.0:5197/mcp`。
+构建产物：
 
-### 配置
+- `apps/web/dist`：静态站点
+- `apps/server/dist`：业务 API
+- `apps/mcp/dist`：MCP 服务
+- `packages/shared/dist`：共享类型
 
-复制 `xtool-mcp/.env.example` 为 `.env`，配置 `XTOOL_SERVER_URL`、`MCP_HTTP_PORT` 及 `XTOOL_JWT_TOKEN`（从 xTool 设置 -> 应用配置 -> 主题设置下方生成的 `mcp_key`）。
+## 生产部署
 
-### Cursor 集成
+### 静态站点与反向代理
 
-在 Cursor 的 MCP 配置中通过 URL 接入：
+Web 默认按以下路径请求后端（见 `apps/web/src/shared/lib/http.ts` 与 `features/chat/api.ts`）：
 
-```json
-{
-  "mcpServers": {
-    "xtool": {
-      "url": "http://localhost:5197/mcp",
-      "headers": {
-        "Authorization": "Bearer <你的 mcp_key>"
-      }
-    }
-  }
+| 前端路径        | 转发到                                        |
+| --------------- | --------------------------------------------- |
+| `/server/api/*` | `http://127.0.0.1:5198/api/*`                 |
+| `/chatServer/*` | `http://127.0.0.1:5298/*`（需支持 WebSocket） |
+
+Nginx 示例：
+
+```nginx
+location /server/api/ {
+  proxy_pass http://127.0.0.1:5198/api/;
+  proxy_set_header Host $host;
+}
+
+location /chatServer/ {
+  proxy_pass http://127.0.0.1:5298/;
+  proxy_http_version 1.1;
+  proxy_set_header Upgrade $http_upgrade;
+  proxy_set_header Connection "upgrade";
+  proxy_set_header Host $host;
+}
+
+location / {
+  root /var/www/html/xTool;
+  try_files $uri $uri/ /index.html;
 }
 ```
 
-远程部署时将地址替换为服务器域名（建议 HTTPS）。详见 [xtool-mcp/README.md](xtool-mcp/README.md)。
+> React 使用 BrowserRouter，静态站点必须把未知路径回退到 `index.html`。
 
----
+### pm2
 
-如需扩展更多工具模块，建议新建子目录并复用现有状态管理、安全沙箱与 IPC 机制，确保主/渲染进程职责清晰。
+```bash
+pnpm build
+pm2 start ecosystem.config.cjs
+```
+
+## 记账模块
+
+- **自动设备检测**：`useIsMobile()` 基于 `matchMedia('(max-width: 767px)')`，首帧即确定视图，不闪屏。
+- **PC 视图**：月份汇总、筛选/搜索、记录列表与右侧固定「记一笔」表单。
+- **移动端视图**：紧凑汇总卡、横向筛选、记录卡片、底部安全区与悬浮「+」按钮，表单使用底部抽屉。
+- **共用数据层**：API、筛选/分组/汇总逻辑、用途管理、附件预览在两端复用；单元测试覆盖筛选、分组、金额格式化与跨年月份。
+
+## 页面
+
+| 路径                                                                                         | 说明                                 |
+| -------------------------------------------------------------------------------------------- | ------------------------------------ |
+| `/bookkeeping`                                                                               | 记账（PC / 移动端自动切换）          |
+| `/todo`                                                                                      | 待办卡片与待办项                     |
+| `/ai/chat`                                                                                   | 聊天室                               |
+| `/ai/knowledge`                                                                              | 知识库上传                           |
+| `/ai/orchestrator`                                                                           | 智能体流程编排                       |
+| `/ai/code`                                                                                   | 代码助手                             |
+| `/tools`                                                                                     | 工具索引                             |
+| `/tools/json` `/tools/diff` `/tools/translate` `/tools/reader` `/tools/video` `/tools/stock` | 具体工具                             |
+| `/settings`                                                                                  | 个人信息、外观、AI 服务密钥、MCP Key |
+
+## 工程化命令
+
+```bash
+pnpm lint         # ESLint
+pnpm format       # Prettier 写入
+pnpm format:check # Prettier 校验
+pnpm typecheck    # 所有 workspace 的 tsc --noEmit
+pnpm test         # Vitest
+pnpm verify       # 格式 + lint + 类型 + 测试 + 构建
+```
+
+## 已移除的桌面能力
+
+- Electron 主进程 / preload / electron-builder 打包
+- 剪贴板历史与剪贴板监听
+- 截图历史、截图编辑器、拖拽截图
+- 登录历史（原 IPC 存储）
+- 全局快捷键与相关设置页面
+- 本地数据 / 在线数据双模式（待办统一走服务端）
+
+## 相关文档
+
+- [业务 API](apps/server/README.md)
+- [MCP 服务](apps/mcp/README.md)
+- [聊天服务](chat-server/README.md)
