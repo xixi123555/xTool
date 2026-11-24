@@ -144,6 +144,21 @@ pnpm build
 pm2 start ecosystem.config.cjs
 ```
 
+### 发布 Skill
+
+生产服务器（`39.105.137.213`）的发布、巡检、重启、日志与回滚由项目内 skill 管理：
+
+```bash
+bash .dsh/skills/xtool-deploy/bin/xtool-deploy status
+bash .dsh/skills/xtool-deploy/bin/xtool-deploy deploy
+bash .dsh/skills/xtool-deploy/bin/xtool-deploy health
+bash .dsh/skills/xtool-deploy/bin/xtool-deploy logs server --lines 100
+bash .dsh/skills/xtool-deploy/bin/xtool-deploy rollback
+```
+
+凭据只保存在本机 `~/.config/xtool/deploy.env`（权限 600），不进入仓库；
+变量说明与发布规则见 [skill 文档](.dsh/skills/xtool-deploy/SKILL.md)。
+
 ## 记账模块
 
 - **自动设备检测**：`useIsMobile()` 基于 `matchMedia('(max-width: 767px)')`，首帧即确定视图，不闪屏。

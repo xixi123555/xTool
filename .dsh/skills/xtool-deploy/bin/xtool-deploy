@@ -1,0 +1,298 @@
+#!/usr/bin/env bash
+# xTool 生产发布入口。
+# 用法见 `xtool-deploy help` 或同目录 SKILL.md。
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../lib/config.sh
+. "$SCRIPT_DIR/../lib/config.sh"
+# shellcheck source=../lib/log.sh
+. "$SCRIPT_DIR/../lib/log.sh"
+# shellcheck source=../lib/ssh.sh
+. "$SCRIPT_DIR/../lib/ssh.sh"
+
+
+xt_run_remote() {
+  if ! xt_ssh_run_file "$@"; then
+    xt_die "远程命令失败"
+  fi
+}
+
+xt_run_local_pnpm() {
+  if command -v pnpm >/dev/null 2>&1; then
+    pnpm "$@"
+  else
+    corepack pnpm "$@"
+  fi
+}
+
+
+xt_check_public_web() {
+  local url="${XTOOL_DEPLOY_PUBLIC_URL:-}"
+  [ -n "$url" ] || return 0
+  local code
+  code="$(curl -sS --max-time 10 -o /dev/null -w '%{http_code}' "$url" 2>/dev/null || true)"
+  if [ "$code" = "200" ]; then
+    xt_ok "公网 Web $url $code"
+  else
+    xt_error "公网 Web 不可用：$url ${code:-no-response}"
+    return 1
+  fi
+}
+
+xt_confirm() {
+  local prompt="$1"
+  local answer=''
+  printf '%s [y/N] ' "$prompt"
+  read -r answer || true
+  case "$answer" in
+    y | Y | yes | YES) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+xt_local_preflight() {
+  local verify="$1"
+  local pull="$2"
+
+  if [ "$verify" = "1" ]; then
+    xt_info "本地验证：pnpm verify"
+    (cd "$XT_PROJECT_ROOT" && xt_run_local_pnpm verify)
+    xt_ok "本地验证通过"
+  else
+    xt_warn "已跳过本地 verify"
+  fi
+
+  if [ "$pull" != "1" ]; then
+    xt_warn "使用 --no-pull：将直接构建服务器当前 checkout，不会校验本地是否已推送"
+    return 0
+  fi
+
+  cd "$XT_PROJECT_ROOT"
+  local dirty
+  dirty="$(git status --porcelain)"
+  if [ -n "$dirty" ]; then
+    printf '%s\n' "$dirty"
+    xt_die "本地工作区有未提交改动，请先 commit"
+  fi
+
+  local current_branch
+  current_branch="$(git rev-parse --abbrev-ref HEAD)"
+  if [ "$current_branch" != "$XTOOL_DEPLOY_BRANCH" ]; then
+    xt_die "当前分支 $current_branch 与部署分支 $XTOOL_DEPLOY_BRANCH 不一致"
+  fi
+
+  if ! git fetch "$XTOOL_DEPLOY_REMOTE" "$XTOOL_DEPLOY_BRANCH" >/dev/null 2>&1; then
+    xt_warn "无法 fetch $XTOOL_DEPLOY_REMOTE/$XTOOL_DEPLOY_BRANCH，继续检查本地状态"
+    if git status -sb | head -1 | grep -q 'ahead '; then
+      xt_die "本地分支领先远程，先 push 再发布"
+    fi
+    return 0
+  fi
+
+  local local_sha remote_sha
+  local_sha="$(git rev-parse HEAD)"
+  remote_sha="$(git rev-parse "$XTOOL_DEPLOY_REMOTE/$XTOOL_DEPLOY_BRANCH" 2>/dev/null || true)"
+  if [ -n "$remote_sha" ] && [ "$local_sha" != "$remote_sha" ]; then
+    xt_die "本地 HEAD 与 $XTOOL_DEPLOY_REMOTE/$XTOOL_DEPLOY_BRANCH 不一致，先 commit + push 再发布"
+  fi
+  xt_ok "本地提交已推送：$(git rev-parse --short HEAD)"
+}
+
+cmd_deploy() {
+  xt_require_config
+  local pull=1
+  local verify=1
+  local chat_deps=0
+  local nginx_reload=0
+
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --no-pull) pull=0 ;;
+      --skip-verify) verify=0 ;;
+      --chat-deps) chat_deps=1 ;;
+      --reload-nginx) nginx_reload=1 ;;
+      --branch)
+        shift
+        [ $# -gt 0 ] || xt_die "--branch 需要参数"
+        XTOOL_DEPLOY_BRANCH="$1"
+        ;;
+      -h | --help)
+        cmd_help
+        return 0
+        ;;
+      *) xt_die "未知 deploy 参数: $1" ;;
+    esac
+    shift
+  done
+
+  xt_info "发布目标"
+  xt_config_summary
+  xt_local_preflight "$verify" "$pull"
+
+  XT_REMOTE_PULL="$pull"
+  XT_REMOTE_CHAT_DEPS="$chat_deps"
+  XT_REMOTE_NGINX_RELOAD="$nginx_reload"
+  XT_REMOTE_ROLLBACK_COMMIT=''
+
+  xt_run_remote "$XT_SKILL_DIR/scripts/remote/deploy.sh"
+  xt_check_public_web || xt_die "远程发布完成，但公网 Web 检查失败"
+  xt_ok "发布完成"
+}
+
+cmd_status() {
+  xt_require_config
+  xt_info "读取服务器状态"
+  xt_run_remote "$XT_SKILL_DIR/scripts/remote/status.sh"
+  xt_check_public_web || xt_warn "公网 Web 检查失败（仅巡检，不影响状态输出）"
+}
+
+cmd_health() {
+  xt_require_config
+  xt_info "生产健康检查"
+  xt_run_remote "$XT_SKILL_DIR/scripts/remote/health.sh"
+  xt_check_public_web || xt_die "公网 Web 检查失败"
+}
+
+cmd_restart() {
+  xt_require_config
+  local target="${1:-all}"
+  case "$target" in
+    all | server | mcp | chat | web) ;;
+    *) xt_die "restart 目标只能是 all/server/mcp/chat/web" ;;
+  esac
+  xt_info "重启 $target"
+  xt_run_remote "$XT_SKILL_DIR/scripts/remote/restart.sh" "$target"
+}
+
+cmd_logs() {
+  xt_require_config
+  local target='server'
+  local lines=100
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --lines)
+        shift
+        [ $# -gt 0 ] || xt_die "--lines 需要数字"
+        lines="$1"
+        ;;
+      server | mcp | chat | all | web) target="$1" ;;
+      *) xt_die "未知 logs 参数: $1" ;;
+    esac
+    shift
+  done
+  xt_info "查看 $target 最近 $lines 行日志"
+  xt_run_remote "$XT_SKILL_DIR/scripts/remote/logs.sh" "$target" "$lines"
+}
+
+cmd_rollback() {
+  xt_require_config
+  local target='HEAD~1'
+  local assume_yes=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --to)
+        shift
+        [ $# -gt 0 ] || xt_die "--to 需要 commit"
+        target="$1"
+        ;;
+      --yes) assume_yes=1 ;;
+      *) xt_die "未知 rollback 参数: $1" ;;
+    esac
+    shift
+  done
+
+  xt_warn "回滚会在服务器 checkout $target 并重新构建，不修改 git 远程历史"
+  if [ "$assume_yes" != "1" ] && ! xt_confirm "确认回滚到 $target？"; then
+    xt_die "已取消"
+  fi
+
+  XT_REMOTE_PULL=0
+  XT_REMOTE_CHAT_DEPS=0
+  XT_REMOTE_NGINX_RELOAD=0
+  XT_REMOTE_ROLLBACK_COMMIT="$target"
+  xt_run_remote "$XT_SKILL_DIR/scripts/remote/deploy.sh"
+  xt_check_public_web || xt_die "远程回滚完成，但公网 Web 检查失败"
+  xt_ok "回滚完成"
+}
+
+cmd_exec() {
+  xt_require_config
+  local assume_yes=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --yes) assume_yes=1; shift ;;
+      --) shift; break ;;
+      *) break ;;
+    esac
+  done
+  [ $# -gt 0 ] || xt_die "exec 需要命令，例如：xtool-deploy exec --yes -- 'systemctl status nginx'"
+  local command="$*"
+
+  xt_warn "将在服务器以 root 执行：$command"
+  if [ "$assume_yes" != "1" ] && ! xt_confirm "确认执行？"; then
+    xt_die "已取消"
+  fi
+  xt_ssh_run "$command"
+}
+
+cmd_config() {
+  xt_config_summary
+  printf 'env file  : %s\n' "$XT_ENV_FILE"
+  if [ -f "$XT_ENV_FILE" ]; then
+    printf 'env mode  : %s\n' "$(stat -f '%Sp' "$XT_ENV_FILE" 2>/dev/null || stat -c '%A' "$XT_ENV_FILE" 2>/dev/null)"
+  else
+    printf 'env file  : 不存在\n'
+  fi
+}
+
+cmd_init() {
+  xt_info "配置本机部署凭据"
+  bash "$XT_SKILL_DIR/scripts/setup-env.sh"
+}
+
+cmd_help() {
+  cat <<'EOF'
+xTool 生产发布
+
+用法：
+  xtool-deploy status
+  xtool-deploy deploy [--no-pull] [--skip-verify] [--chat-deps] [--reload-nginx] [--branch <name>]
+  xtool-deploy health
+  xtool-deploy restart [all|server|mcp|chat|web]
+  xtool-deploy logs [server|mcp|chat|all|web] [--lines N]
+  xtool-deploy rollback [--to <commit>] [--yes]
+  xtool-deploy exec --yes -- '<远程命令>'
+  xtool-deploy config
+  xtool-deploy init
+  xtool-deploy help
+
+凭据：
+  默认从 ~/.config/xtool/deploy.env 读取
+  XTOOL_DEPLOY_HOST / XTOOL_DEPLOY_USER / XTOOL_DEPLOY_PASSWORD
+  可选 XTOOL_DEPLOY_PORT（默认 22）、XTOOL_DEPLOY_IDENTITY_FILE
+
+说明：
+  deploy 默认先执行本地 pnpm verify，并要求本地提交已推送；
+  服务器拉取 main、安装依赖、构建、同步静态站、reload pm2 并做健康检查。
+EOF
+}
+
+COMMAND="${1:-help}"
+shift || true
+
+case "$COMMAND" in
+  deploy) cmd_deploy "$@" ;;
+  status) cmd_status "$@" ;;
+  health) cmd_health "$@" ;;
+  restart) cmd_restart "$@" ;;
+  logs) cmd_logs "$@" ;;
+  rollback) cmd_rollback "$@" ;;
+  exec) cmd_exec "$@" ;;
+  ssh) xt_ssh_interactive_hint ;;
+  config) cmd_config ;;
+  init) cmd_init ;;
+  help | -h | --help) cmd_help ;;
+  *) xt_error "未知命令: $COMMAND"; cmd_help; exit 1 ;;
+esac

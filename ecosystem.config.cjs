@@ -1,8 +1,8 @@
 /**
  * pm2 生产进程配置。
  *
- * 先在服务器上执行 `pnpm install && pnpm build`，
- * 再运行 `pm2 start ecosystem.config.cjs`。
+ * 进程直接执行构建后的 dist，不再依赖运行时的 pnpm，
+ * 避免 pm2 daemon 的 PATH 与登录 shell 不一致导致启动失败。
  */
 const ROOT = '/root/.nvm/xTool';
 
@@ -10,9 +10,8 @@ module.exports = {
   apps: [
     {
       name: 'xTool-server',
-      script: 'pnpm',
-      args: '--filter @xtool/server start',
-      cwd: ROOT,
+      script: `${ROOT}/apps/server/dist/index.js`,
+      cwd: `${ROOT}/apps/server`,
       instances: 1,
       autorestart: true,
       watch: false,
@@ -20,9 +19,8 @@ module.exports = {
     },
     {
       name: 'xTool-mcp',
-      script: 'pnpm',
-      args: '--filter @xtool/mcp start',
-      cwd: ROOT,
+      script: `${ROOT}/apps/mcp/dist/index.js`,
+      cwd: `${ROOT}/apps/mcp`,
       instances: 1,
       autorestart: true,
       watch: false,
@@ -30,7 +28,7 @@ module.exports = {
     },
     {
       name: 'xTool-chat-server',
-      script: './.venv/bin/uvicorn',
+      script: `${ROOT}/chat-server/.venv/bin/uvicorn`,
       args: 'app.main:app --host 0.0.0.0 --port 5298',
       cwd: `${ROOT}/chat-server`,
       instances: 1,
